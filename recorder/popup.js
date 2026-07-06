@@ -2,12 +2,15 @@ const btnRecord = document.getElementById('btn-record');
 const btnExtract = document.getElementById('btn-extract');
 const btnExtractLlm = document.getElementById('btn-extract-llm');
 const btnExport = document.getElementById('btn-export');
+const btnClear = document.getElementById('btn-clear');
 const stepsList = document.getElementById('steps-list');
 const badge = document.getElementById('badge');
 const statusMessage = document.getElementById('status-message');
 const backendUrlInput = document.getElementById('backend-url');
+const extractGroupContainer = document.getElementById('extract-group-container');
+const panelTitleText = document.getElementById('panel-title-text');
 
-// Load host URL from storage or default
+// Load host URL from local storage or default
 chrome.storage.local.get(['backendUrl'], (result) => {
   if (result.backendUrl) {
     backendUrlInput.value = result.backendUrl;
@@ -18,62 +21,79 @@ backendUrlInput.addEventListener('input', () => {
   chrome.storage.local.set({ backendUrl: backendUrlInput.value });
 });
 
-// Helper to format steps for visual listing
+// Helper to format steps for visual listing matching screenshot format
 function getStepDescription(step) {
   switch (step.action) {
     case 'navigate':
-      return `Navigate to ${step.url}`;
+      return `[navigate] Navigate to ${step.url}`;
     case 'click':
-      return `Click on "${step.selector}"`;
+      return `[click] ${step.label || 'undefined'}`;
     case 'fill':
-      return `Type "${step.value}" into "${step.selector}"`;
+      return `[fill] ${step.label || 'undefined'}`;
     case 'extract':
-      return `Extract "${step.label}" from "${step.selector}"`;
+      return `[extract] ${step.label || 'undefined'}`;
     case 'extract_llm':
-      return `Extract with AI: "${step.prompt}" as "${step.label}"`;
+      return `[extract_llm] ${step.label || 'undefined'}`;
     default:
-      return `${step.action} on ${step.selector}`;
+      return `[${step.action}] ${step.selector || 'undefined'}`;
   }
 }
 
-// Update the UI state
+// Update the UI state dynamically
 function updateUI() {
   chrome.runtime.sendMessage({ action: 'getStatus' }, (status) => {
     if (!status) return;
     
     const { isRecording, steps, isExtractMode } = status;
     
+    // 1. Update status badge text & styling
     if (isRecording) {
-      badge.className = 'status-badge recording';
+      badge.textContent = 'RECORDING';
+      badge.className = 'status-badge-text recording';
       btnRecord.textContent = 'Stop Recording';
       btnRecord.className = 'recording';
+      
+      // Show extract buttons during recording
+      if (extractGroupContainer) extractGroupContainer.style.display = 'grid';
       btnExtract.disabled = false;
       btnExtractLlm.disabled = false;
-      btnExport.disabled = steps.length === 0;
     } else {
-      badge.className = 'status-badge';
+      badge.textContent = 'IDLE';
+      badge.className = 'status-badge-text';
       btnRecord.textContent = 'Start Recording';
       btnRecord.className = '';
+      
+      // Hide extract buttons when idle
+      if (extractGroupContainer) extractGroupContainer.style.display = 'none';
       btnExtract.disabled = true;
       btnExtractLlm.disabled = true;
-      btnExport.disabled = steps.length === 0;
     }
     
+    // Enable/disable Send to Marketplace button
+    btnExport.disabled = steps.length === 0;
+    
+    // Update Extract selector mode button
     if (isExtractMode) {
       btnExtract.textContent = 'Cancel Extract';
       btnExtract.className = 'active';
     } else {
-      btnExtract.textContent = 'Select Extract Target';
+      btnExtract.textContent = 'Select Extract';
       btnExtract.className = '';
     }
     
+    // Update panel title header count
+    if (panelTitleText) {
+      panelTitleText.textContent = `RECORDED STEPS (${steps.length})`;
+    }
+    
+    // 2. Render steps list
     if (steps.length === 0) {
       stepsList.innerHTML = '<div class="empty-steps">No steps recorded yet.</div>';
     } else {
       stepsList.innerHTML = '';
       steps.forEach((step, index) => {
         const div = document.createElement('div');
-        div.className = `step-item ${step.action === 'extract_llm' ? 'extract' : step.action}`;
+        div.className = 'step-item';
         div.textContent = `${index + 1}. ${getStepDescription(step)}`;
         stepsList.appendChild(div);
       });
@@ -117,7 +137,7 @@ async function getDashboardToken(backendUrl) {
   });
 }
 
-// Click Record
+// Click Record toggle
 btnRecord.addEventListener('click', () => {
   chrome.runtime.sendMessage({ action: 'getStatus' }, (status) => {
     if (status && status.isRecording) {
@@ -132,7 +152,7 @@ btnRecord.addEventListener('click', () => {
   });
 });
 
-// Click Extract Target
+// Click Extract Target element
 btnExtract.addEventListener('click', () => {
   chrome.runtime.sendMessage({ action: 'getStatus' }, (status) => {
     if (status) {
@@ -170,7 +190,16 @@ btnExtractLlm.addEventListener('click', () => {
   });
 });
 
-// Click Export (Create API)
+// Click Clear Steps
+btnClear.addEventListener('click', () => {
+  if (confirm('Clear all recorded steps?')) {
+    chrome.runtime.sendMessage({ action: 'clearSteps' }, () => {
+      updateUI();
+    });
+  }
+});
+
+// Click Export (Send to Marketplace)
 btnExport.addEventListener('click', async () => {
   statusMessage.textContent = 'Generating API spec with LLM. Please wait...';
   statusMessage.className = 'msg success';
@@ -223,5 +252,6 @@ function showError(msg) {
   btnExport.disabled = false;
 }
 
+// Initial UI sync
 updateUI();
 setInterval(updateUI, 1000);

@@ -28,6 +28,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ status: 'stopped', steps });
   }
   
+  if (request.action === 'clearSteps') {
+    steps = [];
+    isExtractMode = false;
+    sendResponse({ success: true, steps });
+  }
+  
   if (request.action === 'getStatus') {
     sendResponse({ isRecording, steps, isExtractMode });
   }

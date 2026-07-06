@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>API Flow Recorder</title>
+  <title>API Recorder Pro</title>
   <style>
     :root {
       --bg-dark: #0f172a;
@@ -22,51 +22,72 @@
       background-color: var(--bg-dark);
       color: var(--text);
       margin: 0;
-      padding: 12px;
+      padding: 16px;
       box-sizing: border-box;
     }
     
     h2 {
       margin-top: 0;
-      margin-bottom: 8px;
-      font-size: 16px;
-      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 17px;
+      font-weight: 700;
       display: flex;
       align-items: center;
       gap: 6px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
     }
     
-    .status-badge {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: var(--text-muted);
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
     }
     
-    .status-badge.recording {
-      background-color: var(--danger);
+    .status-row span {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    
+    .status-badge-text {
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background-color: #1e293b;
+      border: 1px solid #475569;
+      color: #94a3b8;
+      letter-spacing: 0.05em;
+    }
+    
+    .status-badge-text.recording {
+      background-color: rgba(239, 68, 68, 0.15);
+      border-color: var(--danger);
+      color: var(--danger);
       animation: pulse 1.5s infinite;
     }
     
     @keyframes pulse {
-      0% { opacity: 0.5; }
+      0% { opacity: 0.7; }
       50% { opacity: 1; }
-      100% { opacity: 0.5; }
+      100% { opacity: 0.7; }
     }
     
     .button-group {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
     
     button {
       font-family: inherit;
       font-size: 13px;
-      font-weight: 500;
-      padding: 8px 12px;
+      font-weight: 600;
+      padding: 10px 12px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
@@ -78,24 +99,26 @@
     }
     
     #btn-record {
-      background-color: var(--primary);
+      background-color: var(--danger);
       color: white;
     }
     #btn-record:hover {
-      background-color: var(--primary-hover);
+      background-color: var(--danger-hover);
     }
     
     #btn-record.recording {
-      background-color: var(--danger);
+      background-color: #475569;
     }
     #btn-record.recording:hover {
-      background-color: var(--danger-hover);
+      background-color: #334155;
     }
     
     #btn-extract, #btn-extract-llm {
       background-color: var(--bg-card);
       color: var(--text);
       border: 1px solid var(--border);
+      font-size: 12px;
+      padding: 8px 10px;
     }
     #btn-extract:hover, #btn-extract-llm:hover {
       background-color: var(--border);
@@ -105,74 +128,69 @@
       border-color: var(--primary);
       color: var(--primary);
     }
-    #btn-extract-llm:disabled {
-      background-color: var(--bg-card);
-      color: var(--text-muted);
-      border: 1px solid var(--border);
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
     
     #btn-export {
-      background-color: #3b82f6;
+      background-color: var(--primary);
       color: white;
     }
     #btn-export:hover {
-      background-color: #2563eb;
+      background-color: var(--primary-hover);
     }
     #btn-export:disabled {
       background-color: var(--bg-card);
       color: var(--text-muted);
       border: 1px solid var(--border);
       cursor: not-allowed;
+      opacity: 0.6;
+    }
+    
+    #btn-clear {
+      background-color: #f8fafc;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+    }
+    #btn-clear:hover {
+      background-color: #e2e8f0;
     }
     
     .panel {
       background-color: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 12px;
+      padding: 12px;
+      margin-bottom: 16px;
     }
     
     .panel-title {
       font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--text-muted);
       margin-top: 0;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     
     .steps-container {
-      max-height: 120px;
+      max-height: 140px;
       overflow-y: auto;
-      font-size: 11px;
+      font-size: 12px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
+      font-family: inherit;
     }
     
     .step-item {
-      padding: 4px 6px;
-      background-color: var(--bg-dark);
-      border-radius: 4px;
-      border-left: 3px solid #3b82f6;
+      padding: 2px 0;
       word-break: break-all;
-    }
-    
-    .step-item.extract {
-      border-left-color: var(--primary);
-    }
-    
-    .step-item.navigate {
-      border-left-color: #a855f7;
+      color: #e2e8f0;
     }
     
     .empty-steps {
       color: var(--text-muted);
       text-align: center;
-      padding: 12px 0;
+      padding: 16px 0;
       font-style: italic;
     }
     
@@ -181,7 +199,14 @@
       align-items: center;
       gap: 8px;
       font-size: 11px;
-      margin-bottom: 8px;
+      margin-top: 12px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+    
+    .setting-row label {
+      color: var(--text-muted);
+      font-weight: 600;
     }
     
     .setting-row input {
@@ -192,14 +217,16 @@
       color: var(--text);
       padding: 4px 6px;
       font-family: monospace;
+      font-size: 11px;
     }
     
     .msg {
       font-size: 11px;
       text-align: center;
-      padding: 4px;
+      padding: 6px;
       border-radius: 4px;
       display: none;
+      margin-top: 8px;
     }
     .msg.success {
       background-color: rgba(16, 185, 129, 0.15);
@@ -215,32 +242,37 @@
 </head>
 <body>
   <h2>
-    <span id="badge" class="status-badge"></span>
-    API Flow Recorder
+    <span style="color: #3b82f6;">⚡</span> API Recorder Pro
   </h2>
   
-  <div class="setting-row">
-    <label for="backend-url">Host:</label>
-    <input type="text" id="backend-url" value="http://localhost:3000">
+  <div class="status-row">
+    <span>Status:</span>
+    <span id="badge" class="status-badge-text">IDLE</span>
   </div>
 
   <div class="button-group">
     <button id="btn-record">Start Recording</button>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-      <button id="btn-extract" disabled>Select Extract</button>
-      <button id="btn-extract-llm" disabled>Query with AI</button>
+    
+    <!-- Extract target buttons, only shown during recording -->
+    <div id="extract-group-container" style="display: none; grid-template-columns: 1fr 1fr; gap: 8px;">
+      <button id="btn-extract">Select Extract</button>
+      <button id="btn-extract-llm">Query with AI</button>
     </div>
+    
+    <button id="btn-export" disabled>🚀 Send to Marketplace</button>
+    <button id="btn-clear">✓ Clear Steps</button>
   </div>
   
   <div class="panel">
-    <div class="panel-title">Recorded Steps</div>
+    <div class="panel-title" id="panel-title-text">RECORDED STEPS (0)</div>
     <div id="steps-list" class="steps-container">
       <div class="empty-steps">No steps recorded yet.</div>
     </div>
   </div>
   
-  <div class="button-group">
-    <button id="btn-export" disabled>Create API Endpoint</button>
+  <div class="setting-row">
+    <label for="backend-url">Host:</label>
+    <input type="text" id="backend-url" value="http://localhost:3000">
   </div>
   
   <div id="status-message" class="msg"></div>
