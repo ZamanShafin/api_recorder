@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "API Flow Recorder",
+  "version": "1.0",
+  "description": "Record browser actions and export them to turn them into APIs.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

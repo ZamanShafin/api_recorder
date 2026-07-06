@@ -1,0 +1,141 @@
+{
+  "apis": [
+    {
+      "id": "api_f55f5b0d6b52",
+      "name": "dsebd.org API",
+      "description": "A custom automated API generated from user actions recorded on dsebd.org API.",
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.dsebd.org/"
+        }
+      ],
+      "parameters": [],
+      "outputs": [],
+      "apiKey": "sk_aether_ee6d120fbd7741cbabaad28f",
+      "createdAt": "2026-07-01T16:24:33.095Z",
+      "userId": "system",
+      "isPublic": true,
+      "priceBDT": 0
+    },
+    {
+      "id": "api_db36b82232cf",
+      "name": "en.wikipedia.org API",
+      "description": "A custom automated API generated from user actions recorded on en.wikipedia.org API.",
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://en.wikipedia.org/wiki/Cat"
+        }
+      ],
+      "parameters": [],
+      "outputs": [],
+      "userId": "system",
+      "isPublic": false,
+      "priceBDT": 0,
+      "createdAt": "2026-07-01T18:19:41.340Z"
+    },
+    {
+      "id": "api_043cf65fc9bf",
+      "name": "tojsourcing.com API",
+      "description": "A custom automated API generated from user actions recorded on tojsourcing.com API.",
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.tojsourcing.com/about"
+        }
+      ],
+      "parameters": [],
+      "outputs": [],
+      "userId": "system",
+      "isPublic": false,
+      "priceBDT": 0,
+      "createdAt": "2026-07-03T17:47:54.252Z"
+    },
+    {
+      "id": "api_4867733759a3",
+      "name": "booking.com API",
+      "description": "A custom automated API generated from user actions recorded on booking.com API.",
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/index.html?aid=397594&label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694"
+        },
+        {
+          "action": "extract_llm",
+          "prompt": "List of search results with name and price",
+          "label": "extracted_list"
+        }
+      ],
+      "parameters": [],
+      "outputs": [
+        {
+          "label": "extracted_list",
+          "stepIndex": 1,
+          "description": "AI Extracted data for query \"List of search results with name and price\""
+        }
+      ],
+      "userId": "system",
+      "isPublic": false,
+      "priceBDT": 0,
+      "createdAt": "2026-07-06T11:22:43.252Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr_3f6b6f32b64b",
+      "email": "demo@aetherflow.com",
+      "passwordHash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+      "tier": "free",
+      "apiKey": "sk_usr_45129d2bad1149bf96f32564",
+      "createdAt": "2026-07-01T18:20:39.317Z"
+    }
+  ],
+  "subscriptions": [
+    {
+      "id": "sub_1114913ec6",
+      "userId": "usr_3f6b6f32b64b",
+      "apiId": "api_f55f5b0d6b52",
+      "createdAt": "2026-07-03T17:48:17.773Z"
+    }
+  ],
+  "api_runs": [
+    {
+      "id": "run_9a186823e305",
+      "userId": "usr_3f6b6f32b64b",
+      "apiId": "api_db36b82232cf",
+      "timestamp": "2026-07-01T18:21:18.683Z"
+    },
+    {
+      "id": "run_1483ade45eda",
+      "userId": "usr_3f6b6f32b64b",
+      "apiId": "api_f55f5b0d6b52",
+      "timestamp": "2026-07-03T17:48:34.175Z"
+    },
+    {
+      "id": "run_3793eb991302",
+      "userId": "usr_3f6b6f32b64b",
+      "apiId": "api_f55f5b0d6b52",
+      "timestamp": "2026-07-03T17:48:39.844Z"
+    },
+    {
+      "id": "run_1809fcef9a77",
+      "userId": "usr_3f6b6f32b64b",
+      "apiId": "api_043cf65fc9bf",
+      "timestamp": "2026-07-03T17:48:43.242Z"
+    },
+    {
+      "id": "run_3ffcb9460559",
+      "userId": "usr_3f6b6f32b64b",
+      "apiId": "api_db36b82232cf",
+      "timestamp": "2026-07-03T17:48:49.557Z"
+    },
+    {
+      "id": "run_5543c38f6795",
+      "userId": "usr_3f6b6f32b64b",
+      "apiId": "api_4867733759a3",
+      "timestamp": "2026-07-06T11:25:35.349Z"
+    }
+  ],
+  "transactions": []
+}
