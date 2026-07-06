@@ -183,11 +183,8 @@ async function generateApiSpec(steps) {
   }
   
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
     const stepsString = JSON.stringify(steps, null, 2);
-    const prompt = `
+    const promptText = `
 You are an expert system that analyzes browser automation scripts and transforms them into parameterized API definitions.
 Below is a sequence of actions recorded by a user:
 ${stepsString}
@@ -223,52 +220,29 @@ Return a valid JSON object matching this schema:
 }
 `;
 
-    const response = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: "OBJECT",
-          properties: {
-            name: { type: "STRING" },
-            description: { type: "STRING" },
-            analysis: { type: "STRING" },
-            clarifications: {
-              type: "ARRAY",
-              items: { type: "STRING" }
-            },
-            parameters: {
-              type: "ARRAY",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  name: { type: "STRING" },
-                  stepIndex: { type: "INTEGER" },
-                  defaultValue: { type: "STRING" },
-                  description: { type: "STRING" }
-                },
-                required: ["name", "stepIndex", "defaultValue", "description"]
-              }
-            },
-            outputs: {
-              type: "ARRAY",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  label: { type: "STRING" },
-                  stepIndex: { type: "INTEGER" },
-                  description: { type: "STRING" }
-                },
-                required: ["label", "stepIndex", "description"]
-              }
-            }
-          },
-          required: ["name", "description", "analysis", "clarifications", "parameters", "outputs"]
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: promptText }]
+        }],
+        generationConfig: {
+          responseMimeType: 'application/json'
         }
-      }
+      })
     });
 
-    const text = response.response.text();
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API returned status ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    const text = data.candidates[0].content.parts[0].text;
     return JSON.parse(text);
   } catch (err) {
     console.error("Gemini Spec Generation API failed. Falling back to mock generator. Error:", err.message);
@@ -283,8 +257,6 @@ async function runLlmExtraction(pageText, promptText) {
   if (!apiKey || apiKey.trim() === '') {
     throw new Error("GEMINI_API_KEY is not set. Cannot run LLM-powered extraction.");
   }
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   
   const prompt = `
 You are an expert data extraction system. You are given the visible text content of a web page and a request for what data to extract.
@@ -298,17 +270,38 @@ Web Page Content:
 ${pageText}
 `;
 
-  const response = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }]
-  });
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }]
+      })
+    });
 
-  const responseText = response.response.text().trim();
-  // Strip any markdown code fence if the LLM outputted them
-  let cleanedText = responseText;
-  if (cleanedText.startsWith('```')) {
-    cleanedText = cleanedText.replace(/^```(?:json)?\s*/, '').replace(/```$/, '').trim();
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API returned status ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    const responseText = data.candidates[0].content.parts[0].text.trim();
+    
+    // Strip any markdown code fence if the LLM outputted them
+    let cleanedText = responseText;
+    if (cleanedText.startsWith('```')) {
+      cleanedText = cleanedText.replace(/^```(?:json)?\s*/, '').replace(/```$/, '').trim();
+    }
+    return JSON.parse(cleanedText);
+  } catch (err) {
+    console.error("Gemini Extraction direct REST call failed:", err.message);
+    throw err;
   }
-  return JSON.parse(cleanedText);
 }
 
 // --- PLAYWRIGHT RUNNER ---
