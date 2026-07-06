@@ -128,6 +128,12 @@ async function fetchProfile() {
     // Set user API Key
     apiKeyInput.value = currentUser.apiKey;
     
+    // Toggle Admin Console tab visibility
+    const navBtnAdmin = document.getElementById('nav-btn-admin');
+    if (navBtnAdmin) {
+      navBtnAdmin.style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+    }
+    
     hideAuthScreen();
     fetchApis();
   } catch (err) {
@@ -228,9 +234,19 @@ function switchView(viewName) {
   navBtnMarketplace.classList.toggle('active', viewName === 'marketplace');
   navBtnBilling.classList.toggle('active', viewName === 'billing');
   
+  const navBtnAdmin = document.getElementById('nav-btn-admin');
+  if (navBtnAdmin) {
+    navBtnAdmin.classList.toggle('active', viewName === 'admin');
+  }
+  
   viewApis.style.display = viewName === 'apis' ? 'block' : 'none';
   viewMarketplace.style.display = viewName === 'marketplace' ? 'block' : 'none';
   viewBilling.style.display = viewName === 'billing' ? 'block' : 'none';
+  
+  const viewAdmin = document.getElementById('view-admin');
+  if (viewAdmin) {
+    viewAdmin.style.display = viewName === 'admin' ? 'block' : 'none';
+  }
   
   myApisSidebarSection.style.display = viewName === 'apis' ? 'flex' : 'none';
   
@@ -238,12 +254,19 @@ function switchView(viewName) {
     fetchMarketplace();
   } else if (viewName === 'billing') {
     updateBillingView();
+  } else if (viewName === 'admin') {
+    initAdminPanel();
   }
 }
 
 navBtnApis.addEventListener('click', () => switchView('apis'));
 navBtnMarketplace.addEventListener('click', () => switchView('marketplace'));
 navBtnBilling.addEventListener('click', () => switchView('billing'));
+
+const navBtnAdmin = document.getElementById('nav-btn-admin');
+if (navBtnAdmin) {
+  navBtnAdmin.addEventListener('click', () => switchView('admin'));
+}
 
 // --- MY APIs WORKSPACE ---
 
@@ -881,4 +904,303 @@ window.addEventListener('DOMContentLoaded', () => {
   if (apiId) {
     fetchApis(apiId);
   }
+  
+  // Bind Admin Tab listeners
+  document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchAdminTab(btn.getAttribute('data-admin-tab'));
+    });
+  });
+  
+  // Bind Manual Subscription Form handler
+  const manualSubForm = document.getElementById('admin-manual-sub-form');
+  if (manualSubForm) {
+    manualSubForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const userId = document.getElementById('admin-sub-user-select').value;
+      const apiId = document.getElementById('admin-sub-api-select').value;
+      const successMsg = document.getElementById('admin-sub-success-msg');
+      const errorMsg = document.getElementById('admin-sub-error-msg');
+      
+      successMsg.style.display = 'none';
+      errorMsg.style.display = 'none';
+      
+      try {
+        const res = await fetch('/api/admin/subscriptions', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ userId, apiId })
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to link subscription');
+        
+        successMsg.style.display = 'block';
+        loadAdminStats();
+        loadAdminSubscriptions();
+      } catch (err) {
+        errorMsg.textContent = err.message;
+        errorMsg.style.display = 'block';
+      }
+    });
+  }
 });
+
+// --- ADMIN CONSOLE CONTROLLER LOGIC ---
+
+let activeAdminTab = 'users';
+
+async function initAdminPanel() {
+  switchAdminTab(activeAdminTab);
+  await loadAdminStats();
+}
+
+function switchAdminTab(tabName) {
+  activeAdminTab = tabName;
+  
+  document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-admin-tab') === tabName);
+  });
+  
+  document.querySelectorAll('.admin-tab-content').forEach(content => {
+    content.style.display = content.id === `admin-panel-${tabName}` ? 'block' : 'none';
+  });
+  
+  if (tabName === 'users') {
+    loadAdminUsers();
+  } else if (tabName === 'apis') {
+    loadAdminApis();
+  } else if (tabName === 'subs') {
+    loadAdminSubscriptions();
+  }
+}
+
+async function loadAdminStats() {
+  try {
+    const res = await fetch('/api/admin/stats', { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Failed to load stats');
+    const data = await res.json();
+    
+    document.getElementById('admin-stat-users').textContent = data.totalUsers;
+    document.getElementById('admin-stat-apis').textContent = data.totalApis;
+    document.getElementById('admin-stat-subs').textContent = data.totalSubscriptions;
+    document.getElementById('admin-stat-revenue').textContent = `BDT ${data.totalSales.toLocaleString()}`;
+  } catch (err) {
+    console.error('Error loading admin stats:', err);
+  }
+}
+
+async function loadAdminUsers() {
+  const tbody = document.getElementById('admin-users-rows');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Loading users...</td></tr>`;
+  
+  try {
+    const res = await fetch('/api/admin/users', { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Failed to load users');
+    const users = await res.json();
+    
+    if (users.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="table-empty">No users registered yet.</td></tr>`;
+      return;
+    }
+    
+    tbody.innerHTML = '';
+    users.forEach(user => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-family: monospace;">${user.id}</td>
+        <td>
+          <input type="email" value="${user.email}" id="admin-user-email-${user.id}" style="background: var(--bg-code); color: var(--text); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size:12px; width: 180px;">
+        </td>
+        <td>
+          <select id="admin-user-tier-${user.id}">
+            <option value="free" ${user.tier === 'free' ? 'selected' : ''}>Free</option>
+            <option value="pro" ${user.tier === 'pro' ? 'selected' : ''}>Pro</option>
+          </select>
+        </td>
+        <td>
+          <select id="admin-user-role-${user.id}">
+            <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+          </select>
+        </td>
+        <td>
+          <button class="admin-btn-save" onclick="saveAdminUser('${user.id}')">Save</button>
+          <button class="admin-btn-delete" onclick="deleteAdminUser('${user.id}')" style="margin-left: 8px;">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Error: ${err.message}</td></tr>`;
+  }
+}
+
+async function saveAdminUser(userId) {
+  const email = document.getElementById(`admin-user-email-${userId}`).value.trim();
+  const tier = document.getElementById(`admin-user-tier-${userId}`).value;
+  const role = document.getElementById(`admin-user-role-${userId}`).value;
+  
+  try {
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ email, tier, role })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update user');
+    
+    alert('User updated successfully!');
+    loadAdminStats();
+    loadAdminUsers();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+async function deleteAdminUser(userId) {
+  if (!confirm('Are you sure you want to delete this user? This will also clean up all their subscriptions and API execution history!')) return;
+  
+  try {
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete user');
+    
+    alert('User deleted successfully!');
+    loadAdminStats();
+    loadAdminUsers();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+async function loadAdminApis() {
+  const tbody = document.getElementById('admin-apis-rows');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Loading APIs...</td></tr>`;
+  
+  try {
+    const res = await fetch('/api/admin/apis', { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Failed to load APIs');
+    const apis = await res.json();
+    
+    if (apis.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="table-empty">No APIs recorded yet.</td></tr>`;
+      return;
+    }
+    
+    tbody.innerHTML = '';
+    apis.forEach(api => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-family: monospace;">${api.id}</td>
+        <td style="font-weight: 600;">${api.name}</td>
+        <td style="font-family: monospace;">${api.userId}</td>
+        <td>${api.isPublic ? '🟢 Yes' : '🔴 No'}</td>
+        <td style="font-family: monospace;">${api.priceBDT}</td>
+        <td>
+          <button class="admin-btn-delete" onclick="deleteAdminApi('${api.id}')">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Error: ${err.message}</td></tr>`;
+  }
+}
+
+async function deleteAdminApi(apiId) {
+  if (!confirm('Are you sure you want to delete this API? This will remove the endpoint, all subscriptions, and logs permanently!')) return;
+  
+  try {
+    const res = await fetch(`/api/admin/apis/${apiId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete API');
+    
+    alert('API deleted successfully!');
+    loadAdminStats();
+    loadAdminApis();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+async function loadAdminSubscriptions() {
+  const tbody = document.getElementById('admin-subs-rows');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="4" class="table-empty">Loading subscriptions...</td></tr>`;
+  
+  try {
+    const res = await fetch('/api/admin/subscriptions', { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Failed to load subscriptions');
+    const subs = await res.json();
+    
+    if (subs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="table-empty">No active subscriptions.</td></tr>`;
+    } else {
+      tbody.innerHTML = '';
+      subs.forEach(sub => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-family: monospace;">${sub.id}</td>
+          <td style="font-weight: 600;">${sub.userEmail}</td>
+          <td>${sub.apiName}</td>
+          <td>
+            <button class="admin-btn-delete" onclick="cancelAdminSubscription('${sub.id}')">Cancel</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    
+    const usersRes = await fetch('/api/admin/users', { headers: getAuthHeaders() });
+    const apisRes = await fetch('/api/admin/apis', { headers: getAuthHeaders() });
+    
+    if (usersRes.ok && apisRes.ok) {
+      const users = await usersRes.json();
+      const apis = await apisRes.json();
+      
+      const userSelect = document.getElementById('admin-sub-user-select');
+      const apiSelect = document.getElementById('admin-sub-api-select');
+      
+      if (userSelect && apiSelect) {
+        userSelect.innerHTML = users.map(u => `<option value="${u.id}">${u.email} (${u.tier})</option>`).join('');
+        apiSelect.innerHTML = apis.map(a => `<option value="${a.id}">${a.name} [by ${a.userId === 'system' ? 'System' : 'User'}]</option>`).join('');
+      }
+    }
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" class="table-empty">Error: ${err.message}</td></tr>`;
+  }
+}
+
+async function cancelAdminSubscription(subId) {
+  if (!confirm('Are you sure you want to cancel this subscription?')) return;
+  
+  try {
+    const res = await fetch(`/api/admin/subscriptions/${subId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to cancel subscription');
+    
+    alert('Subscription canceled successfully!');
+    loadAdminStats();
+    loadAdminSubscriptions();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+window.saveAdminUser = saveAdminUser;
+window.deleteAdminUser = deleteAdminUser;
+window.deleteAdminApi = deleteAdminApi;
+window.cancelAdminSubscription = cancelAdminSubscription;

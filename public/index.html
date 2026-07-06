@@ -94,6 +94,12 @@
           </svg>
           Billing & Plans
         </button>
+        <button class="nav-tab" id="nav-btn-admin" style="display: none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Admin Console
+        </button>
       </nav>
       
       <!-- API List Header (Only visible on My APIs view) -->
@@ -395,6 +401,122 @@
             </div>
           </div>
           
+        </div>
+      </section>
+
+      <!-- 4. VIEW: ADMIN CONSOLE -->
+      <section id="view-admin" class="content-view" style="display: none;">
+        <div class="billing-header">
+          <h1>Admin Console & Controls</h1>
+          <p>Global administrative CRUD overrides for users, APIs, and subscriptions.</p>
+        </div>
+
+        <div class="admin-stats-grid">
+          <div class="glass-card admin-stat-card">
+            <h4>Total Users</h4>
+            <span class="stat-value" id="admin-stat-users">0</span>
+          </div>
+          <div class="glass-card admin-stat-card">
+            <h4>Total APIs</h4>
+            <span class="stat-value" id="admin-stat-apis">0</span>
+          </div>
+          <div class="glass-card admin-stat-card">
+            <h4>Active Subscriptions</h4>
+            <span class="stat-value" id="admin-stat-subs">0</span>
+          </div>
+          <div class="glass-card admin-stat-card">
+            <h4>Platform Revenue</h4>
+            <span class="stat-value" id="admin-stat-revenue">BDT 0</span>
+          </div>
+        </div>
+
+        <div class="admin-workspace-card glass-card">
+          <div class="admin-tabs">
+            <button class="admin-tab-btn active" data-admin-tab="users">Users</button>
+            <button class="admin-tab-btn" data-admin-tab="apis">APIs</button>
+            <button class="admin-tab-btn" data-admin-tab="subs">Subscriptions</button>
+          </div>
+
+          <!-- Sub-view: Users -->
+          <div class="admin-tab-content" id="admin-panel-users">
+            <div class="table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>User ID</th>
+                    <th>Email</th>
+                    <th>Tier</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-users-rows">
+                  <!-- Loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sub-view: APIs -->
+          <div class="admin-tab-content" id="admin-panel-apis" style="display: none;">
+            <div class="table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>API ID</th>
+                    <th>Name</th>
+                    <th>Owner ID</th>
+                    <th>Public?</th>
+                    <th>Price (BDT)</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-apis-rows">
+                  <!-- Loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sub-view: Subscriptions -->
+          <div class="admin-tab-content" id="admin-panel-subs" style="display: none;">
+            <div class="subs-admin-layout">
+              <div class="table-container" style="flex: 2; overflow-x: auto;">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>User Email</th>
+                      <th>API Name</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-subs-rows">
+                    <!-- Loaded dynamically -->
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Form to manually add subscription -->
+              <div class="manual-sub-form-card" style="flex: 1; padding-left: 20px; border-left: 1px solid var(--border); min-width: 250px;">
+                <h4>Create Manual Subscription</h4>
+                <p class="card-subtitle" style="margin-bottom: 15px;">Manually link any user account to any API flow.</p>
+                <form id="admin-manual-sub-form" class="playground-form">
+                  <div class="form-group">
+                    <label for="admin-sub-user-select">Select User</label>
+                    <select id="admin-sub-user-select" required style="width: 100%; background: var(--bg-code); color: var(--text); border: 1px solid var(--border); padding: 8px; border-radius: 4px;"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="admin-sub-api-select">Select API</label>
+                    <select id="admin-sub-api-select" required style="width: 100%; background: var(--bg-code); color: var(--text); border: 1px solid var(--border); padding: 8px; border-radius: 4px;"></select>
+                  </div>
+                  <button type="submit" class="primary-button" style="margin-top: 10px; width: 100%;">Link Subscription</button>
+                </form>
+                <div id="admin-sub-success-msg" class="msg success" style="display: none; margin-top: 10px;">Linked successfully!</div>
+                <div id="admin-sub-error-msg" class="msg error" style="display: none; margin-top: 10px;"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </main>

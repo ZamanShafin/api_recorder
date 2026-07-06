@@ -46,6 +46,14 @@ if (!fs.existsSync(DB_PATH)) {
         migrated = true;
       }
     });
+
+    // Migrate user accounts to include role
+    db.users.forEach(user => {
+      if (!user.role) {
+        user.role = user.email.toLowerCase() === 'demo@aetherflow.com' ? 'admin' : 'user';
+        migrated = true;
+      }
+    });
     
     if (migrated) {
       fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
@@ -97,6 +105,7 @@ function requireAuth(req, res, next) {
     id: user.id,
     email: user.email,
     tier: user.tier,
+    role: user.role || 'user',
     apiKey: user.apiKey,
     createdAt: user.createdAt
   };
@@ -404,6 +413,7 @@ app.post('/api/auth/register', (req, res) => {
     email: email.toLowerCase(),
     passwordHash: hashPassword(password),
     tier: 'free',
+    role: 'user',
     apiKey: 'sk_usr_' + uuidv4().replace(/-/g, '').substring(0, 24),
     createdAt: new Date().toISOString()
   };
@@ -413,10 +423,10 @@ app.post('/api/auth/register', (req, res) => {
   
   res.json({
     token: `token_${newUser.id}`,
-    user: { id: newUser.id, email: newUser.email, tier: newUser.tier, apiKey: newUser.apiKey }
+    user: { id: newUser.id, email: newUser.email, tier: newUser.tier, role: newUser.role, apiKey: newUser.apiKey }
   });
 });
-
+ 
 // Login User
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
@@ -431,7 +441,7 @@ app.post('/api/auth/login', (req, res) => {
   
   res.json({
     token: `token_${user.id}`,
-    user: { id: user.id, email: user.email, tier: user.tier, apiKey: user.apiKey }
+    user: { id: user.id, email: user.email, tier: user.tier, role: user.role || 'user', apiKey: user.apiKey }
   });
 });
 
@@ -765,6 +775,166 @@ app.post('/api/run/:id', async (req, res) => {
       screenshot: result.screenshot ? `data:image/png;base64,${result.screenshot}` : null
     });
   }
+});
+
+// --- ADMINISTRATIVE CONTROLS ---
+
+// Admin Authorization Middleware
+function requireAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Forbidden: Administrative access required.' });
+    }
+    next();
+  });
+}
+
+// 1. Admin Stats
+app.get('/api/admin/stats', requireAdmin, (req, res) => {
+  const db = getDB();
+  const totalUsers = db.users.length;
+  const totalApis = db.apis.length;
+  const totalSubscriptions = db.subscriptions.length;
+  const totalRuns = db.api_runs.length;
+  
+  // Calculate total platform billing transactions
+  const totalSales = db.transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+  
+  res.json({
+    totalUsers,
+    totalApis,
+    totalSubscriptions,
+    totalRuns,
+    totalSales
+  });
+});
+
+// 2. Manage Users (Get list)
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+  const db = getDB();
+  const users = db.users.map(u => ({
+    id: u.id,
+    email: u.email,
+    tier: u.tier,
+    role: u.role || 'user',
+    apiKey: u.apiKey,
+    createdAt: u.createdAt
+  }));
+  res.json(users);
+});
+
+// 3. Manage Users (Update user tier or role)
+app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const { tier, role, email } = req.body;
+  const db = getDB();
+  const user = db.users.find(u => u.id === id);
+  
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  
+  if (tier !== undefined) user.tier = tier;
+  if (role !== undefined) user.role = role;
+  if (email !== undefined) user.email = email.toLowerCase().trim();
+  
+  saveDB(db);
+  res.json({ success: true, user: { id: user.id, email: user.email, tier: user.tier, role: user.role } });
+});
+
+// 4. Manage Users (Delete user)
+app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  const userIdx = db.users.findIndex(u => u.id === id);
+  
+  if (userIdx === -1) return res.status(404).json({ error: 'User not found' });
+  
+  db.users.splice(userIdx, 1);
+  db.subscriptions = db.subscriptions.filter(s => s.userId !== id);
+  db.api_runs = db.api_runs.filter(r => r.userId !== id);
+  
+  saveDB(db);
+  res.json({ success: true, message: 'User and all associated data deleted successfully.' });
+});
+
+// 5. Manage APIs (Get all APIs)
+app.get('/api/admin/apis', requireAdmin, (req, res) => {
+  const db = getDB();
+  res.json(db.apis);
+});
+
+// 6. Manage APIs (Delete API)
+app.delete('/api/admin/apis/:id', requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  const apiIdx = db.apis.findIndex(a => a.id === id);
+  
+  if (apiIdx === -1) return res.status(404).json({ error: 'API not found' });
+  
+  db.apis.splice(apiIdx, 1);
+  db.subscriptions = db.subscriptions.filter(s => s.apiId !== id);
+  db.api_runs = db.api_runs.filter(r => r.apiId !== id);
+  
+  saveDB(db);
+  res.json({ success: true, message: 'API and all associated subscriptions deleted successfully.' });
+});
+
+// 7. Manage Subscriptions (Get all)
+app.get('/api/admin/subscriptions', requireAdmin, (req, res) => {
+  const db = getDB();
+  const subscriptions = db.subscriptions.map(sub => {
+    const user = db.users.find(u => u.id === sub.userId);
+    const api = db.apis.find(a => a.id === sub.apiId);
+    return {
+      id: sub.id,
+      userId: sub.userId,
+      apiId: sub.apiId,
+      userEmail: user ? user.email : 'Unknown User',
+      apiName: api ? api.name : 'Unknown API',
+      createdAt: sub.createdAt
+    };
+  });
+  res.json(subscriptions);
+});
+
+// 8. Manage Subscriptions (Manually Add Subscription)
+app.post('/api/admin/subscriptions', requireAdmin, (req, res) => {
+  const { userId, apiId } = req.body;
+  if (!userId || !apiId) return res.status(400).json({ error: 'User ID and API ID are required' });
+  
+  const db = getDB();
+  const userExists = db.users.some(u => u.id === userId);
+  const apiExists = db.apis.some(a => a.id === apiId);
+  
+  if (!userExists) return res.status(404).json({ error: 'User not found' });
+  if (!apiExists) return res.status(404).json({ error: 'API not found' });
+  
+  if (db.subscriptions.some(s => s.userId === userId && s.apiId === apiId)) {
+    return res.status(400).json({ error: 'Subscription already exists' });
+  }
+  
+  const newSub = {
+    id: 'sub_' + uuidv4().replace(/-/g, '').substring(0, 10),
+    userId,
+    apiId,
+    createdAt: new Date().toISOString()
+  };
+  db.subscriptions.push(newSub);
+  saveDB(db);
+  
+  res.json({ success: true, subscription: newSub });
+});
+
+// 9. Manage Subscriptions (Cancel subscription)
+app.delete('/api/admin/subscriptions/:id', requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  const subIdx = db.subscriptions.findIndex(s => s.id === id);
+  
+  if (subIdx === -1) return res.status(404).json({ error: 'Subscription not found' });
+  
+  db.subscriptions.splice(subIdx, 1);
+  saveDB(db);
+  res.json({ success: true, message: 'Subscription canceled successfully.' });
 });
 
 app.listen(PORT, () => {
