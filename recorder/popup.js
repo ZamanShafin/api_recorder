@@ -249,7 +249,7 @@ btnExport.addEventListener('click', async () => {
       
       chrome.runtime.sendMessage({ action: 'stopRecording' }, () => {
         updateUI();
-        chrome.tabs.create({ url: `${backendUrl}/?apiId=${api.id}` });
+        chrome.tabs.create({ url: `${backendUrl}/?apiId=${api.id}&new=true` });
       });
       
     } catch (err) {

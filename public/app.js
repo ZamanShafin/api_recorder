@@ -901,8 +901,12 @@ window.addEventListener('DOMContentLoaded', () => {
   // Watch url parameter for direct selections
   const urlParams = new URLSearchParams(window.location.search);
   const apiId = urlParams.get('apiId');
+  const isNew = urlParams.get('new') === 'true';
   if (apiId) {
     fetchApis(apiId);
+    if (isNew) {
+      setTimeout(() => openClarificationModal(apiId), 800);
+    }
   }
   
   // Bind Admin Tab listeners
@@ -1204,3 +1208,78 @@ window.saveAdminUser = saveAdminUser;
 window.deleteAdminUser = deleteAdminUser;
 window.deleteAdminApi = deleteAdminApi;
 window.cancelAdminSubscription = cancelAdminSubscription;
+
+// --- CLARIFICATION DIALOG MODAL ---
+
+async function openClarificationModal(apiId) {
+  try {
+    const res = await fetch('/api/apis', { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Failed to load APIs');
+    const data = await res.json();
+    
+    const api = data.created.find(a => a.id === apiId);
+    if (!api) return;
+    
+    document.getElementById('clarify-analysis-text').textContent = api.analysis || `This API automates the process of interacting with the website and performing user recorded actions.`;
+    
+    const list = document.getElementById('clarify-questions-list');
+    list.innerHTML = '';
+    
+    const clarifications = api.clarifications && api.clarifications.length > 0 
+      ? api.clarifications 
+      : [
+          'Should the API extract the full list of search results with prices and ratings, or is the primary goal to navigate and select the first available property?',
+          'Do you need to support additional search constraints such as children, multiple rooms, or specific budget filters?',
+          'Would you like to dynamically specify check-in and check-out offsets instead of hardcoded dates?'
+        ];
+        
+    clarifications.forEach(q => {
+      const li = document.createElement('li');
+      li.textContent = q;
+      list.appendChild(li);
+    });
+    
+    document.getElementById('clarify-api-name').value = api.name;
+    document.getElementById('clarify-api-cost').value = api.priceBDT || 0;
+    document.getElementById('clarify-api-desc').value = api.description;
+    document.getElementById('clarify-api-private').checked = !api.isPublic;
+    
+    const modal = document.getElementById('clarification-modal');
+    modal.setAttribute('data-api-id', apiId);
+    modal.style.display = 'flex';
+  } catch (err) {
+    console.error("Failed to open clarification modal:", err);
+  }
+}
+
+// Bind Clarification buttons
+document.getElementById('btn-clarify-back').addEventListener('click', () => {
+  document.getElementById('clarification-modal').style.display = 'none';
+});
+
+document.getElementById('btn-clarify-save').addEventListener('click', async () => {
+  const modal = document.getElementById('clarification-modal');
+  const apiId = modal.getAttribute('data-api-id');
+  if (!apiId) return;
+  
+  const name = document.getElementById('clarify-api-name').value.trim();
+  const priceBDT = parseInt(document.getElementById('clarify-api-cost').value) || 0;
+  const description = document.getElementById('clarify-api-desc').value.trim();
+  const isPublic = !document.getElementById('clarify-api-private').checked;
+  
+  try {
+    const res = await fetch(`/api/apis/${apiId}/publish`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ name, priceBDT, description, isPublic })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to save settings');
+    
+    modal.style.display = 'none';
+    fetchApis(apiId);
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+});

@@ -166,7 +166,12 @@ function generateMockSpec(steps) {
     name: siteName,
     description: `A custom automated API generated from user actions recorded on ${siteName}.`,
     parameters,
-    outputs
+    outputs,
+    analysis: `This API automates the process of interacting with ${siteName} and performing user recorded actions.`,
+    clarifications: [
+      `Should the API extract more elements, or is the current single-page flow sufficient?`,
+      `Do you need to support custom parameters for input fields?`
+    ]
   };
 }
  
@@ -191,11 +196,15 @@ Your task:
 1. Come up with a clean name (e.g. "Google Search API") and a descriptive summary of what this automation does.
 2. Identify all steps that have user-inputted strings (where action is 'fill'). These inputs should be parameterized. Recommend parameter names that make sense (e.g., 'search_query', 'username', 'email') instead of hardcoded values, describe what they are, and keep their original recorded value as the default.
 3. Identify all steps that extract data (action is 'extract' or 'extract_llm'). For each extract step, describe what value it returns (based on the step label and selector/AI prompt).
+4. Write a brief 1-2 sentence high-level analysis of the captured flow steps.
+5. List 2-3 clarification questions or recommendations about potential edge cases, budget parameters, or dynamic elements in this automation.
 
 Return a valid JSON object matching this schema:
 {
   "name": "string (name of the API)",
   "description": "string (description of the API)",
+  "analysis": "string (brief summary of steps)",
+  "clarifications": ["string (clarification question/recommendation 1)", "string (2)"],
   "parameters": [
     {
       "name": "string (parameter name, lowercase alphanumeric + underscore)",
@@ -223,6 +232,11 @@ Return a valid JSON object matching this schema:
           properties: {
             name: { type: "STRING" },
             description: { type: "STRING" },
+            analysis: { type: "STRING" },
+            clarifications: {
+              type: "ARRAY",
+              items: { type: "STRING" }
+            },
             parameters: {
               type: "ARRAY",
               items: {
@@ -249,7 +263,7 @@ Return a valid JSON object matching this schema:
               }
             }
           },
-          required: ["name", "description", "parameters", "outputs"]
+          required: ["name", "description", "analysis", "clarifications", "parameters", "outputs"]
         }
       }
     });
@@ -502,6 +516,8 @@ app.post('/api/recordings', async (req, res) => {
       id: 'api_' + uuidv4().replace(/-/g, '').substring(0, 12),
       name: spec.name || 'Untitled API',
       description: spec.description || 'No description provided.',
+      analysis: spec.analysis || '',
+      clarifications: spec.clarifications || [],
       steps: steps,
       parameters: spec.parameters || [],
       outputs: spec.outputs || [],
@@ -522,17 +538,21 @@ app.post('/api/recordings', async (req, res) => {
   }
 });
 
-// Toggle Publish to Marketplace
+// Toggle Publish to Marketplace / Edit API details
 app.post('/api/apis/:id/publish', requireAuth, (req, res) => {
-  const { isPublic, priceBDT } = req.body;
+  const { isPublic, priceBDT, name, description } = req.body;
   const db = getDB();
   
   const api = db.apis.find(a => a.id === req.params.id);
   if (!api) return res.status(404).json({ error: 'API not found' });
-  if (api.userId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+  if (api.userId !== req.user.id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
   
-  api.isPublic = !!isPublic;
-  api.priceBDT = Math.max(0, parseInt(priceBDT) || 0);
+  if (isPublic !== undefined) api.isPublic = !!isPublic;
+  if (priceBDT !== undefined) api.priceBDT = Math.max(0, parseInt(priceBDT) || 0);
+  if (name !== undefined) api.name = name.trim() || api.name;
+  if (description !== undefined) api.description = description.trim() || api.description;
   
   saveDB(db);
   res.json({ success: true, api });
