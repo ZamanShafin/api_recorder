@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "API Flow Recorder",
+  "name": "API Flow Recorder Pro",
   "version": "1.0",
   "description": "Record browser actions and export them to turn them into APIs.",
   "permissions": [
@@ -16,5 +16,13 @@
   },
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
 }

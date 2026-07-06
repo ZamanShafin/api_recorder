@@ -13,8 +13,10 @@ style.innerHTML = `
 `;
 document.head.appendChild(style);
 
-// Helper to generate CSS selectors
+// Helper to generate CSS selectors (safeguarded)
 function getUniqueSelector(el) {
+  if (!el || !el.tagName) return '';
+  
   if (el.id) {
     return `#${CSS.escape(el.id)}`;
   }
@@ -43,6 +45,7 @@ function getUniqueSelector(el) {
   // Traversal to find nth-of-type selector
   let path = [];
   while (el && el.nodeType === Node.ELEMENT_NODE) {
+    if (!el.tagName) break;
     let selector = el.nodeName.toLowerCase();
     if (el.id) {
       selector += '#' + CSS.escape(el.id);
@@ -86,6 +89,8 @@ function checkRecording(callback) {
 
 // Click listener
 document.addEventListener('click', (e) => {
+  if (!e.target || !e.target.tagName) return;
+
   if (isExtractMode) {
     e.preventDefault();
     e.stopPropagation();
@@ -130,12 +135,22 @@ document.addEventListener('click', (e) => {
       return;
     }
     
+    // Find text labels or class elements if available
+    let clickLabel = e.target.innerText ? e.target.innerText.trim().substring(0, 30) : '';
+    if (!clickLabel && e.target.value) {
+      clickLabel = e.target.value.toString().trim().substring(0, 30);
+    }
+    if (!clickLabel && e.target.placeholder) {
+      clickLabel = e.target.placeholder.trim().substring(0, 30);
+    }
+    
     const selector = getUniqueSelector(e.target);
     chrome.runtime.sendMessage({
       action: 'addStep',
       step: {
         action: 'click',
-        selector: selector
+        selector: selector,
+        label: clickLabel || undefined
       }
     });
   });
@@ -143,16 +158,21 @@ document.addEventListener('click', (e) => {
 
 // Input change listener
 document.addEventListener('change', (e) => {
+  if (!e.target || !e.target.tagName) return;
+
   checkRecording(() => {
     const tagName = e.target.tagName.toLowerCase();
     if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
       const selector = getUniqueSelector(e.target);
+      let fillLabel = e.target.name || e.target.placeholder || e.target.id || 'input';
+      
       chrome.runtime.sendMessage({
         action: 'addStep',
         step: {
           action: 'fill',
           selector: selector,
-          value: e.target.value
+          value: e.target.value,
+          label: fillLabel
         }
       });
     }
@@ -162,6 +182,7 @@ document.addEventListener('change', (e) => {
 // Extract mode hover effects
 document.addEventListener('mouseover', (e) => {
   if (!isExtractMode) return;
+  if (!e.target || !e.target.tagName) return;
   
   if (hoveredElement && hoveredElement !== e.target) {
     hoveredElement.classList.remove('api-flow-highlight');
@@ -173,6 +194,7 @@ document.addEventListener('mouseover', (e) => {
 
 document.addEventListener('mouseout', (e) => {
   if (!isExtractMode) return;
+  if (!e.target || !e.target.tagName) return;
   if (hoveredElement === e.target) {
     hoveredElement.classList.remove('api-flow-highlight');
     hoveredElement = null;

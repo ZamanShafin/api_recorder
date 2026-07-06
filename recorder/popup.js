@@ -213,6 +213,18 @@ btnExport.addEventListener('click', async () => {
     
     const backendUrl = backendUrlInput.value.replace(/\/$/, '');
     
+    // Auto-extract logic: if no extract step is found, automatically append an AI extraction step to the flow
+    const stepsToSend = [...status.steps];
+    const hasExtract = stepsToSend.some(s => s.action === 'extract' || s.action === 'extract_llm');
+    
+    if (!hasExtract) {
+      stepsToSend.push({
+        action: 'extract_llm',
+        prompt: 'Extract the main list of search results or primary data shown on the final page with all key labels and values.',
+        label: 'extracted_data'
+      });
+    }
+    
     try {
       // Find session token to link recording to correct user account
       const userToken = await getDashboardToken(backendUrl);
@@ -221,7 +233,7 @@ btnExport.addEventListener('click', async () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          steps: status.steps,
+          steps: stepsToSend,
           userToken: userToken
         })
       });

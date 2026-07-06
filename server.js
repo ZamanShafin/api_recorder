@@ -506,7 +506,7 @@ app.post('/api/recordings', async (req, res) => {
       parameters: spec.parameters || [],
       outputs: spec.outputs || [],
       userId: userId,
-      isPublic: false,
+      isPublic: true,
       priceBDT: 0,
       createdAt: new Date().toISOString()
     };
