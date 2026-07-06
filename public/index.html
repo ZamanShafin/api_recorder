@@ -118,6 +118,13 @@
         </nav>
       </div>
       
+      <!-- Download Badge in Sidebar -->
+      <div style="padding: 10px 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+        <a href="/api-flow-recorder.zip" download style="text-decoration: none; color: #10b981; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px; background: rgba(16,185,129,0.06); padding: 8px; border-radius: 6px; border: 1px dashed rgba(16,185,129,0.3); text-align: center; justify-content: center;">
+          🔌 Download Extension (.zip)
+        </a>
+      </div>
+
       <div class="sidebar-footer">
         <div class="connection-status user-profile-bar">
           <span class="user-email-tag" id="user-email-display">user@domain.com</span>
@@ -146,7 +153,10 @@
             <div class="setup-card">
               <div class="step-num">01</div>
               <h4>Install Extension</h4>
-              <p>Go to <code>edge://extensions</code> (or chrome://extensions), enable <b>Developer Mode</b>, click <b>Load unpacked</b>, and select the <code>/recorder</code> folder.</p>
+              <p>Go to <code>edge://extensions</code> (or chrome://extensions), enable <b>Developer Mode</b>, click <b>Load unpacked</b>, and select the downloaded <code>/recorder</code> folder.</p>
+              <a href="/api-flow-recorder.zip" download class="primary-button" style="margin-top: 14px; text-decoration: none; display: inline-flex; width: auto; font-size: 12px; padding: 6px 12px; border: 1px solid var(--border); background: var(--bg-code); color: var(--text);">
+                🔌 Download Extension (.zip)
+              </a>
             </div>
             <div class="setup-card">
               <div class="step-num">02</div>
