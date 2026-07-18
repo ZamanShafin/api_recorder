@@ -49,8 +49,14 @@ if (!fs.existsSync(DB_PATH)) {
 
     // Migrate user accounts to include role
     db.users.forEach(user => {
-      if (!user.role) {
-        user.role = user.email.toLowerCase() === 'demo@aetherflow.com' ? 'admin' : 'user';
+      if (user.email.toLowerCase() === 'demo@aetherflow.com') {
+        if (user.role !== 'admin' || user.tier !== 'pro') {
+          user.role = 'admin';
+          user.tier = 'pro';
+          migrated = true;
+        }
+      } else if (!user.role) {
+        user.role = 'user';
         migrated = true;
       }
     });
