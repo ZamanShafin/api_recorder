@@ -1,3 +1,4 @@
+console.log("[AetherFlow Recorder] Content script injected on", window.location.href);
 let isExtractMode = false;
 let hoveredElement = null;
 
@@ -145,6 +146,7 @@ document.addEventListener('click', (e) => {
     }
     
     const selector = getUniqueSelector(e.target);
+    console.log("[AetherFlow Recorder] Click recorded on selector:", selector, "label:", clickLabel);
     chrome.runtime.sendMessage({
       action: 'addStep',
       step: {
@@ -165,6 +167,7 @@ document.addEventListener('input', (e) => {
     if (tagName === 'input' || tagName === 'textarea') {
       const selector = getUniqueSelector(e.target);
       let fillLabel = e.target.name || e.target.placeholder || e.target.id || 'input';
+      console.log("[AetherFlow Recorder] Text input recorded on selector:", selector, "value:", e.target.value);
       
       chrome.runtime.sendMessage({
         action: 'addStep',
@@ -188,6 +191,7 @@ document.addEventListener('change', (e) => {
     if (tagName === 'select' || (tagName === 'input' && (e.target.type === 'checkbox' || e.target.type === 'radio'))) {
       const selector = getUniqueSelector(e.target);
       let fillLabel = e.target.name || e.target.id || 'select';
+      console.log("[AetherFlow Recorder] Input recorded on selector:", selector, "value:", e.target.value);
       
       chrome.runtime.sendMessage({
         action: 'addStep',
