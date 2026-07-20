@@ -156,15 +156,38 @@ document.addEventListener('click', (e) => {
   });
 }, true);
 
-// Input change listener
+// Input listener for real-time text entries
+document.addEventListener('input', (e) => {
+  if (!e.target || !e.target.tagName) return;
+
+  checkRecording(() => {
+    const tagName = e.target.tagName.toLowerCase();
+    if (tagName === 'input' || tagName === 'textarea') {
+      const selector = getUniqueSelector(e.target);
+      let fillLabel = e.target.name || e.target.placeholder || e.target.id || 'input';
+      
+      chrome.runtime.sendMessage({
+        action: 'addStep',
+        step: {
+          action: 'fill',
+          selector: selector,
+          value: e.target.value,
+          label: fillLabel
+        }
+      });
+    }
+  });
+}, true);
+
+// Change listener for select elements, checkboxes, and radios
 document.addEventListener('change', (e) => {
   if (!e.target || !e.target.tagName) return;
 
   checkRecording(() => {
     const tagName = e.target.tagName.toLowerCase();
-    if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+    if (tagName === 'select' || (tagName === 'input' && (e.target.type === 'checkbox' || e.target.type === 'radio'))) {
       const selector = getUniqueSelector(e.target);
-      let fillLabel = e.target.name || e.target.placeholder || e.target.id || 'input';
+      let fillLabel = e.target.name || e.target.id || 'select';
       
       chrome.runtime.sendMessage({
         action: 'addStep',

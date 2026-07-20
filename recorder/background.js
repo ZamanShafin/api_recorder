@@ -65,3 +65,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ isExtractMode });
   }
 });
+
+// Listen for tab URL changes to record navigation steps automatically
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (isRecording && changeInfo.url && !changeInfo.url.startsWith('chrome://') && !changeInfo.url.startsWith('about:')) {
+    // Check if the last step was already a navigation to this URL
+    const lastStep = steps[steps.length - 1];
+    if (!lastStep || lastStep.url !== changeInfo.url) {
+      steps.push({
+        action: 'navigate',
+        url: changeInfo.url
+      });
+    }
+  }
+});
