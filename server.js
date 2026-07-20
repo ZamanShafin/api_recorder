@@ -226,7 +226,7 @@ Return a valid JSON object matching this schema:
 }
 `;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -278,7 +278,7 @@ ${pageText}
 `;
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
