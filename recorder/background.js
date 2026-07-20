@@ -1,81 +1,131 @@
-let isRecording = false;
-let steps = [];
-let isExtractMode = false;
+// Helper to get/set state from chrome.storage.local
+async function getState() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['isRecording', 'steps', 'isExtractMode'], (result) => {
+      resolve({
+        isRecording: !!result.isRecording,
+        steps: result.steps || [],
+        isExtractMode: !!result.isExtractMode
+      });
+    });
+  });
+}
+
+async function saveState(state) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set(state, () => {
+      resolve();
+    });
+  });
+}
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'startRecording') {
-    isRecording = true;
-    steps = [];
-    isExtractMode = false;
-    
-    // Auto-record the initial navigation step from the current tab URL
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const activeTab = tabs[0];
+      const initialSteps = [];
       if (activeTab && activeTab.url && !activeTab.url.startsWith('chrome://')) {
-        steps.push({
+        initialSteps.push({
           action: 'navigate',
           url: activeTab.url
         });
       }
-      sendResponse({ status: 'started', steps });
+      
+      await saveState({
+        isRecording: true,
+        steps: initialSteps,
+        isExtractMode: false
+      });
+      
+      sendResponse({ status: 'started', steps: initialSteps });
     });
     return true; // async response
   }
   
   if (request.action === 'stopRecording') {
-    isRecording = false;
-    isExtractMode = false;
-    sendResponse({ status: 'stopped', steps });
+    saveState({
+      isRecording: false,
+      isExtractMode: false
+    }).then(() => {
+      getState().then(state => {
+        sendResponse({ status: 'stopped', steps: state.steps });
+      });
+    });
+    return true;
   }
   
   if (request.action === 'clearSteps') {
-    steps = [];
-    isExtractMode = false;
-    sendResponse({ success: true, steps });
+    saveState({
+      steps: [],
+      isExtractMode: false
+    }).then(() => {
+      sendResponse({ success: true, steps: [] });
+    });
+    return true;
   }
   
   if (request.action === 'getStatus') {
-    sendResponse({ isRecording, steps, isExtractMode });
+    getState().then(state => {
+      sendResponse(state);
+    });
+    return true;
   }
   
   if (request.action === 'addStep') {
-    if (isRecording) {
-      // If it's a fill step, avoid duplicate fill steps on the same selector by updating the last step if it was a fill on the same element
-      if (request.step.action === 'fill') {
-        const lastStep = steps[steps.length - 1];
-        if (lastStep && lastStep.action === 'fill' && lastStep.selector === request.step.selector) {
-          lastStep.value = request.step.value;
-          sendResponse({ success: true, steps });
-          return;
+    getState().then(async (state) => {
+      if (state.isRecording) {
+        const steps = state.steps;
+        // Avoid duplicate fill steps on the same selector
+        if (request.step.action === 'fill') {
+          const lastStep = steps[steps.length - 1];
+          if (lastStep && lastStep.action === 'fill' && lastStep.selector === request.step.selector) {
+            lastStep.value = request.step.value;
+            await saveState({ steps });
+            sendResponse({ success: true, steps });
+            return;
+          }
         }
+        steps.push(request.step);
+        await saveState({ steps });
+        sendResponse({ success: true, steps });
+      } else {
+        sendResponse({ success: true, steps: state.steps });
       }
-      steps.push(request.step);
-    }
-    sendResponse({ success: true, steps });
+    });
+    return true;
   }
 
   if (request.action === 'toggleExtractMode') {
-    isExtractMode = request.value;
-    // Broadcast to active tab
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'setExtractMode', value: isExtractMode });
-      }
+    const isExtractMode = request.value;
+    saveState({ isExtractMode }).then(() => {
+      // Broadcast to active tab
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'setExtractMode', value: isExtractMode });
+        }
+      });
+      sendResponse({ isExtractMode });
     });
-    sendResponse({ isExtractMode });
+    return true;
   }
 });
 
 // Listen for tab URL changes to record navigation steps automatically
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (isRecording && changeInfo.url && !changeInfo.url.startsWith('chrome://') && !changeInfo.url.startsWith('about:')) {
-    // Check if the last step was already a navigation to this URL
-    const lastStep = steps[steps.length - 1];
-    if (!lastStep || lastStep.url !== changeInfo.url) {
-      steps.push({
-        action: 'navigate',
-        url: changeInfo.url
-      });
-    }
+  if (changeInfo.url && !changeInfo.url.startsWith('chrome://') && !changeInfo.url.startsWith('about:')) {
+    getState().then(async (state) => {
+      if (state.isRecording) {
+        const steps = state.steps;
+        // Check if the last step was already a navigation to this URL
+        const lastStep = steps[steps.length - 1];
+        if (!lastStep || lastStep.url !== changeInfo.url) {
+          steps.push({
+            action: 'navigate',
+            url: changeInfo.url
+          });
+          await saveState({ steps });
+        }
+      }
+    });
   }
 });
