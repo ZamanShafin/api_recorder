@@ -798,6 +798,57 @@ app.post('/api/run/:id', async (req, res) => {
   }
 });
 
+// --- TESTING GROUND ROUTE ---
+app.post('/api/testing-ground/extract', requireAuth, async (req, res) => {
+  const { content, contentType, prompt } = req.body;
+  if (!content || !contentType || !prompt) {
+    return res.status(400).json({ success: false, error: 'Missing content, contentType, or prompt parameter.' });
+  }
+
+  let textToExtract = '';
+
+  try {
+    if (contentType === 'url') {
+      console.log(`[Testing Ground] Replaying URL for text scrape: ${content}`);
+      const browser = await chromium.launch({
+        headless: true,
+        args: [
+          '--disable-blink-features=AutomationControlled',
+          '--no-sandbox',
+          '--disable-setuid-sandbox'
+        ]
+      });
+      const context = await browser.newContext({
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      });
+      const page = await context.newPage();
+      
+      try {
+        await page.goto(content, { waitUntil: 'domcontentloaded', timeout: 25000 });
+        textToExtract = await page.locator('body').innerText();
+      } finally {
+        await browser.close();
+      }
+    } else {
+      textToExtract = content;
+    }
+
+    console.log(`[Testing Ground] Running direct LLM extraction with prompt: "${prompt}"`);
+    const extractedData = await runLlmExtraction(textToExtract, prompt);
+
+    res.json({
+      success: true,
+      data: extractedData
+    });
+  } catch (err) {
+    console.error("[Testing Ground Error]:", err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
 // --- ADMINISTRATIVE CONTROLS ---
 
 // Admin Authorization Middleware

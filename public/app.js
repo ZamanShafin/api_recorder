@@ -239,6 +239,11 @@ function switchView(viewName) {
     navBtnAdmin.classList.toggle('active', viewName === 'admin');
   }
   
+  const navBtnTestingGround = document.getElementById('nav-btn-testing-ground');
+  if (navBtnTestingGround) {
+    navBtnTestingGround.classList.toggle('active', viewName === 'testing-ground');
+  }
+  
   viewApis.style.display = viewName === 'apis' ? 'block' : 'none';
   viewMarketplace.style.display = viewName === 'marketplace' ? 'block' : 'none';
   viewBilling.style.display = viewName === 'billing' ? 'block' : 'none';
@@ -246,6 +251,11 @@ function switchView(viewName) {
   const viewAdmin = document.getElementById('view-admin');
   if (viewAdmin) {
     viewAdmin.style.display = viewName === 'admin' ? 'block' : 'none';
+  }
+  
+  const viewTestingGround = document.getElementById('view-testing-ground');
+  if (viewTestingGround) {
+    viewTestingGround.style.display = viewName === 'testing-ground' ? 'block' : 'none';
   }
   
   myApisSidebarSection.style.display = viewName === 'apis' ? 'flex' : 'none';
@@ -1283,3 +1293,142 @@ document.getElementById('btn-clarify-save').addEventListener('click', async () =
     alert(`Error: ${err.message}`);
   }
 });
+
+// --- TESTING GROUND LOGIC ---
+
+// DOM Elements
+const tgBtnSourceText = document.getElementById('tg-btn-source-text');
+const tgBtnSourceUrl = document.getElementById('tg-btn-source-url');
+const tgContainerText = document.getElementById('tg-container-text');
+const tgContainerUrl = document.getElementById('tg-container-url');
+const tgInputText = document.getElementById('tg-input-text');
+const tgInputUrl = document.getElementById('tg-input-url');
+const tgInputPrompt = document.getElementById('tg-input-prompt');
+const tgBtnRun = document.getElementById('tg-btn-run');
+const tgStatusBadge = document.getElementById('tg-status-badge');
+const tgOutputJson = document.getElementById('tg-output-json');
+const tgMetricTime = document.getElementById('tg-metric-time');
+const tgMetricStatus = document.getElementById('tg-metric-status');
+
+let tgSourceType = 'text'; // 'text' or 'url'
+
+// Toggle Source Input
+if (tgBtnSourceText) {
+  tgBtnSourceText.addEventListener('click', () => {
+    tgSourceType = 'text';
+    tgBtnSourceText.classList.add('active');
+    tgBtnSourceText.style.background = 'rgba(255,255,255,0.05)';
+    tgBtnSourceText.style.color = 'var(--text)';
+    
+    tgBtnSourceUrl.classList.remove('active');
+    tgBtnSourceUrl.style.background = 'transparent';
+    tgBtnSourceUrl.style.color = 'var(--text-muted)';
+    
+    tgContainerText.style.display = 'block';
+    tgContainerUrl.style.display = 'none';
+  });
+}
+
+if (tgBtnSourceUrl) {
+  tgBtnSourceUrl.addEventListener('click', () => {
+    tgSourceType = 'url';
+    tgBtnSourceUrl.classList.add('active');
+    tgBtnSourceUrl.style.background = 'rgba(255,255,255,0.05)';
+    tgBtnSourceUrl.style.color = 'var(--text)';
+    
+    tgBtnSourceText.classList.remove('active');
+    tgBtnSourceText.style.background = 'transparent';
+    tgBtnSourceText.style.color = 'var(--text-muted)';
+    
+    tgContainerText.style.display = 'none';
+    tgContainerUrl.style.display = 'block';
+  });
+}
+
+// Run Extraction
+if (tgBtnRun) {
+  tgBtnRun.addEventListener('click', async () => {
+    const prompt = tgInputPrompt.value.trim();
+    if (!prompt) {
+      alert('Please describe what you want the AI to extract.');
+      return;
+    }
+
+    let content = '';
+    if (tgSourceType === 'text') {
+      content = tgInputText.value.trim();
+      if (!content) {
+        alert('Please paste some text or HTML content to test.');
+        return;
+      }
+    } else {
+      content = tgInputUrl.value.trim();
+      if (!content) {
+        alert('Please enter a target URL.');
+        return;
+      }
+      if (!content.startsWith('http://') && !content.startsWith('https://')) {
+        alert('Invalid URL. Make sure it starts with http:// or https://');
+        return;
+      }
+    }
+
+    // Set Loading UI
+    tgBtnRun.disabled = true;
+    tgBtnRun.querySelector('.btn-text').textContent = 'Extracting...';
+    tgBtnRun.querySelector('.loader-spinner').style.display = 'block';
+    
+    tgStatusBadge.textContent = 'Running';
+    tgStatusBadge.style.background = 'rgba(234, 179, 8, 0.1)';
+    tgStatusBadge.style.color = '#eab308';
+    
+    tgMetricTime.textContent = '--';
+    tgMetricStatus.textContent = '--';
+    tgOutputJson.textContent = JSON.stringify({ message: "Connecting to Gemini model endpoint..." }, null, 2);
+
+    const startTime = performance.now();
+
+    try {
+      const res = await fetch('/api/testing-ground/extract', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          content,
+          contentType: tgSourceType,
+          prompt
+        })
+      });
+
+      const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+      tgMetricTime.textContent = `${duration}s`;
+      tgMetricStatus.textContent = res.status;
+
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        tgStatusBadge.textContent = 'Success';
+        tgStatusBadge.style.background = 'rgba(16, 185, 129, 0.1)';
+        tgStatusBadge.style.color = '#10b981';
+        tgOutputJson.textContent = JSON.stringify(data.data, null, 2);
+      } else {
+        tgStatusBadge.textContent = 'Error';
+        tgStatusBadge.style.background = 'rgba(239, 68, 68, 0.1)';
+        tgStatusBadge.style.color = '#ef4444';
+        tgOutputJson.textContent = JSON.stringify({ error: data.error || 'Failed to extract data' }, null, 2);
+      }
+    } catch (err) {
+      const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+      tgMetricTime.textContent = `${duration}s`;
+      tgMetricStatus.textContent = 'ERR';
+      
+      tgStatusBadge.textContent = 'Failed';
+      tgStatusBadge.style.background = 'rgba(239, 68, 68, 0.1)';
+      tgStatusBadge.style.color = '#ef4444';
+      tgOutputJson.textContent = JSON.stringify({ error: err.message }, null, 2);
+    } finally {
+      tgBtnRun.disabled = false;
+      tgBtnRun.querySelector('.btn-text').textContent = 'Test AI Extraction';
+      tgBtnRun.querySelector('.loader-spinner').style.display = 'none';
+    }
+  });
+}

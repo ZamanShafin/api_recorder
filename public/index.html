@@ -94,6 +94,14 @@
           </svg>
           Billing & Plans
         </button>
+        <button class="nav-tab" id="nav-btn-testing-ground">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+          Testing Ground
+        </button>
         <button class="nav-tab" id="nav-btn-admin" style="display: none;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -411,6 +419,88 @@
             </div>
           </div>
           
+        </div>
+      </section>
+
+      <!-- 5. VIEW: TESTING GROUND -->
+      <section id="view-testing-ground" class="content-view" style="display: none;">
+        <div class="billing-header">
+          <h1>AI Extraction Testing Ground</h1>
+          <p>Instant playground to test and refine your AI extraction prompts on raw content or live URLs.</p>
+        </div>
+
+        <div class="testing-ground-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px;">
+          <!-- Left Column: Inputs -->
+          <div class="tg-left-column" style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="glass-card" style="padding: 24px;">
+              <h3 style="margin-top: 0; margin-bottom: 16px; font-weight: 600; color: var(--text);">1. Choose Source Content</h3>
+              
+              <div class="tg-source-selector" style="display: flex; gap: 12px; margin-bottom: 16px;">
+                <button type="button" class="tg-tab-btn active" id="tg-btn-source-text" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; outline: none;">Paste Text / HTML</button>
+                <button type="button" class="tg-tab-btn" id="tg-btn-source-url" style="flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; outline: none;">Fetch URL Live</button>
+              </div>
+
+              <!-- Input Area for Paste text/HTML -->
+              <div id="tg-container-text">
+                <label style="display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">Raw Content</label>
+                <textarea id="tg-input-text" placeholder="Paste your HTML, list of items, or raw text content here..." style="width: 100%; height: 200px; background: var(--bg-code); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: monospace; font-size: 12px; resize: vertical; box-sizing: border-box; outline: none;"></textarea>
+              </div>
+
+              <!-- Input Area for Fetch URL -->
+              <div id="tg-container-url" style="display: none;">
+                <label style="display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">Target URL</label>
+                <input type="text" id="tg-input-url" placeholder="https://example.com/products" style="width: 100%; padding: 10px; background: var(--bg-code); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; box-sizing: border-box; margin-bottom: 8px; outline: none;">
+                <p style="font-size: 11px; color: var(--text-muted); margin: 0;">AetherFlow will navigate to this URL in a headless browser, extract the visible page text, and run the extraction.</p>
+              </div>
+            </div>
+
+            <div class="glass-card" style="padding: 24px;">
+              <h3 style="margin-top: 0; margin-bottom: 16px; font-weight: 600; color: var(--text);">2. Define Extraction Prompt</h3>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="tg-input-prompt" style="display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">AI Instruction Prompt</label>
+                <textarea id="tg-input-prompt" placeholder="Describe exactly what structure and keys you want Gemini to extract... E.g., 'Extract all items with name, price, rating and review count.'" style="width: 100%; height: 80px; background: var(--bg-code); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 13px; resize: none; box-sizing: border-box; outline: none;"></textarea>
+              </div>
+
+              <button type="button" id="tg-btn-run" class="btn-primary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; padding: 12px; font-size: 14px; font-weight: 600;">
+                <span class="btn-text">Test AI Extraction</span>
+                <span class="loader-spinner" style="display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Column: Outputs -->
+          <div class="tg-right-column" style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="glass-card" style="padding: 24px; display: flex; flex-direction: column; flex-grow: 1; min-height: 400px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="margin: 0; font-weight: 600; color: var(--text);">Extracted JSON Result</h3>
+                <span id="tg-status-badge" class="badge-status-neutral" style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--text-muted);">Idle</span>
+              </div>
+
+              <div style="flex-grow: 1; display: flex; flex-direction: column; background: var(--bg-code); border: 1px solid var(--border); border-radius: 6px; position: relative;">
+                <pre style="margin: 0; padding: 16px; font-family: monospace; font-size: 12px; color: #a7b1c2; overflow: auto; max-height: 380px; flex-grow: 1; white-space: pre-wrap;" id="tg-output-json">{
+  "message": "Enter your target text or URL, define your prompt, and click run to test."
+}</pre>
+              </div>
+            </div>
+
+            <!-- Metrics Card -->
+            <div class="glass-card" style="padding: 16px 24px; display: flex; gap: 24px; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="display: block; font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 4px;">Time Elapsed</span>
+                <span id="tg-metric-time" style="font-size: 18px; font-weight: 700; color: var(--text);">--</span>
+              </div>
+              <div style="height: 30px; width: 1px; background: var(--border);"></div>
+              <div>
+                <span style="display: block; font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 4px;">HTTP Status</span>
+                <span id="tg-metric-status" style="font-size: 18px; font-weight: 700; color: var(--text);">--</span>
+              </div>
+              <div style="height: 30px; width: 1px; background: var(--border);"></div>
+              <div>
+                <span style="display: block; font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 4px;">Model Engine</span>
+                <span style="font-size: 18px; font-weight: 700; color: var(--primary);">Gemini 1.5 Flash</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
