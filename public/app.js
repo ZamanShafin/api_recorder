@@ -273,6 +273,11 @@ navBtnApis.addEventListener('click', () => switchView('apis'));
 navBtnMarketplace.addEventListener('click', () => switchView('marketplace'));
 navBtnBilling.addEventListener('click', () => switchView('billing'));
 
+const navBtnTestingGround = document.getElementById('nav-btn-testing-ground');
+if (navBtnTestingGround) {
+  navBtnTestingGround.addEventListener('click', () => switchView('testing-ground'));
+}
+
 const navBtnAdmin = document.getElementById('nav-btn-admin');
 if (navBtnAdmin) {
   navBtnAdmin.addEventListener('click', () => switchView('admin'));
