@@ -663,6 +663,7 @@ app.post('/api/apis/create-from-extraction', requireAuth, (req, res) => {
         description: 'Structured JSON data returned by Gemini'
       }
     ],
+    steps: steps,
     flow: { steps },
     createdAt: new Date().toISOString()
   };
@@ -854,29 +855,38 @@ app.post('/api/run/:id', async (req, res) => {
     });
   }
   
-  const result = await runFlow(api.steps, runParams);
-  
-  if (result.success) {
-    // Log run statistics
-    db.api_runs.push({
-      id: 'run_' + uuidv4().replace(/-/g, '').substring(0, 12),
-      userId: runner.id,
-      apiId: api.id,
-      timestamp: new Date().toISOString()
-    });
-    saveDB(db);
+  try {
+    const targetSteps = api.steps || (api.flow && api.flow.steps) || [];
+    const result = await runFlow(targetSteps, runParams);
     
-    res.json({
-      success: true,
-      data: result.results,
-      screenshot: `data:image/png;base64,${result.screenshot}`
-    });
-  } else {
+    if (result.success) {
+      // Log run statistics
+      db.api_runs.push({
+        id: 'run_' + uuidv4().replace(/-/g, '').substring(0, 12),
+        userId: runner.id,
+        apiId: api.id,
+        timestamp: new Date().toISOString()
+      });
+      saveDB(db);
+      
+      res.json({
+        success: true,
+        data: result.results,
+        screenshot: `data:image/png;base64,${result.screenshot}`
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error || 'Automation execution failed',
+        data: result.results || {},
+        screenshot: result.screenshot ? `data:image/png;base64,${result.screenshot}` : null
+      });
+    }
+  } catch (runErr) {
+    console.error("[API Gateway Runner Exception]:", runErr);
     res.status(500).json({
       success: false,
-      error: result.error,
-      data: result.results,
-      screenshot: result.screenshot ? `data:image/png;base64,${result.screenshot}` : null
+      error: runErr.message || 'Server error during execution'
     });
   }
 });

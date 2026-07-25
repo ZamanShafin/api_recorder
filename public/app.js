@@ -580,7 +580,17 @@ playgroundForm.addEventListener('submit', async (e) => {
     metricTime.textContent = `${duration}s`;
     metricCode.textContent = res.status;
     
-    const result = await res.json();
+    let result;
+    try {
+      result = await res.json();
+    } catch (parseErr) {
+      const rawText = await res.text().catch(() => '');
+      result = {
+        success: false,
+        error: `Server returned HTTP ${res.status}: ${rawText.replace(/<[^>]*>?/gm, '').trim().substring(0, 200) || 'Non-JSON response'}`
+      };
+    }
+    
     jsonOutput.textContent = JSON.stringify(result, null, 2);
     
     if (res.ok && result.success) {
