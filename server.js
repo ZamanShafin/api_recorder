@@ -118,6 +118,29 @@ function requireAuth(req, res, next) {
   next();
 }
 
+// Optional user authentication helper (does not block if unauthenticated)
+function optionalAuth(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.replace(/^Bearer\s+/, '');
+  
+  if (token && token.startsWith('token_')) {
+    const userId = token.substring(6);
+    const db = getDB();
+    const user = db.users.find(u => u.id === userId);
+    if (user) {
+      req.user = {
+        id: user.id,
+        email: user.email,
+        tier: user.tier,
+        role: user.role || 'user',
+        apiKey: user.apiKey,
+        createdAt: user.createdAt
+      };
+    }
+  }
+  next();
+}
+
 // --- SPEC GENERATORS ---
 
 function generateMockSpec(steps) {
@@ -561,33 +584,93 @@ app.post('/api/apis/:id/publish', requireAuth, (req, res) => {
 
 // --- MARKETPLACE ACTIONS ---
 
-// Fetch public marketplace APIs
-app.get('/api/marketplace', requireAuth, (req, res) => {
+// Fetch public marketplace APIs (accessible by guests and logged in users)
+app.get('/api/marketplace', optionalAuth, (req, res) => {
   const db = getDB();
+  const currentUserId = req.user ? req.user.id : null;
   
-  // Filter only public APIs created by others (or system default)
-  const publicApis = db.apis.filter(api => api.isPublic && api.userId !== req.user.id);
+  // Filter all public APIs
+  const publicApis = db.apis.filter(api => api.isPublic);
   
   // Attach subscription stats
   const result = publicApis.map(api => {
     const subscribersCount = db.subscriptions.filter(s => s.apiId === api.id).length;
-    const isSubscribed = db.subscriptions.some(s => s.apiId === api.id && s.userId === req.user.id);
+    const isSubscribed = currentUserId ? db.subscriptions.some(s => s.apiId === api.id && s.userId === currentUserId) : false;
+    const isOwner = currentUserId ? api.userId === currentUserId : false;
     const creatorEmail = db.users.find(u => u.id === api.userId)?.email || 'Platform Default';
     
     return {
       id: api.id,
       name: api.name,
       description: api.description,
-      parametersCount: api.parameters.length,
-      outputsCount: api.outputs.length,
-      priceBDT: api.priceBDT,
+      parametersCount: api.parameters ? api.parameters.length : 0,
+      outputsCount: api.outputs ? api.outputs.length : 0,
+      priceBDT: api.priceBDT || 0,
       subscribersCount,
       isSubscribed,
+      isOwner,
       creatorEmail
     };
   });
   
   res.json(result);
+});
+
+// Create and publish a new API directly from Testing Ground AI Extraction
+app.post('/api/apis/create-from-extraction', requireAuth, (req, res) => {
+  const { name, description, targetUrl, prompt, priceBDT, isPublic } = req.body;
+  const db = getDB();
+  
+  const apiId = `api_${uuidv4().substring(0, 8)}`;
+  const cleanName = (name && name.trim()) ? name.trim() : (prompt ? `AI Extractor: ${prompt.substring(0, 30)}` : 'AI Extraction API');
+  const cleanDesc = (description && description.trim()) ? description.trim() : `Automated AI extraction flow for ${targetUrl || 'web content'}`;
+  
+  // Generate execution flow steps
+  const steps = [];
+  if (targetUrl && targetUrl.trim()) {
+    steps.push({
+      action: 'navigate',
+      url: targetUrl.trim()
+    });
+  }
+  steps.push({
+    action: 'extract_llm',
+    prompt: prompt || 'Extract structured key-value data',
+    label: 'extracted_data'
+  });
+  
+  const newApi = {
+    id: apiId,
+    userId: req.user.id,
+    name: cleanName,
+    description: cleanDesc,
+    endpoint: `/api/run/${apiId}`,
+    isPublic: isPublic !== undefined ? !!isPublic : true,
+    priceBDT: Math.max(0, parseInt(priceBDT) || 0),
+    parameters: [
+      {
+        name: 'prompt',
+        type: 'string',
+        required: false,
+        default: prompt || 'Extract data',
+        description: 'AI instruction prompt for extraction'
+      }
+    ],
+    outputs: [
+      {
+        name: 'extracted_data',
+        type: 'object',
+        description: 'Structured JSON data returned by Gemini'
+      }
+    ],
+    flow: { steps },
+    createdAt: new Date().toISOString()
+  };
+  
+  db.apis.push(newApi);
+  saveDB(db);
+  
+  res.json({ success: true, api: newApi });
 });
 
 // Subscribe to a marketplace API (with mock bKash verification for paid APIs)

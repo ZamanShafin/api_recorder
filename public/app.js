@@ -104,16 +104,36 @@ const pubPrice = document.getElementById('pub-price');
 let activeBkashContext = { type: 'upgrade_plan', apiId: null, priceBDT: 0 };
 let isLoginMode = false; // toggles between Login and Register
 
-// --- AUTHENTICATION FLOWS ---
+// --- AUTHENTICATION & GUEST MODE FLOWS ---
 
 function checkAuthSession() {
   const token = getAuthToken();
   if (token) {
     fetchProfile();
   } else {
-    showAuthScreen();
+    initGuestMode();
   }
 }
+
+function initGuestMode() {
+  currentUser = null;
+  currentApi = null;
+  authOverlay.style.display = 'none';
+  mainApp.style.display = 'flex';
+  
+  if (userEmailDisplay) {
+    userEmailDisplay.innerHTML = `<span style="color: var(--primary); font-weight:600; cursor:pointer;" onclick="showAuthScreen('Log in or Register account to unlock full API creation and billing features.')">🔑 Log In / Register</span>`;
+  }
+  if (btnLogout) {
+    btnLogout.style.display = 'none';
+  }
+  
+  switchView('marketplace');
+}
+
+window.promptGuestLogin = function(msg) {
+  showAuthScreen(msg || 'Log in or register to interact with marketplace APIs.');
+};
 
 async function fetchProfile() {
   try {
@@ -122,6 +142,7 @@ async function fetchProfile() {
     
     currentUser = await res.json();
     userEmailDisplay.textContent = currentUser.email;
+    if (btnLogout) btnLogout.style.display = 'inline-flex';
     userTierBadge.textContent = currentUser.tier === 'pro' ? 'Pro Plan' : 'Free Plan';
     userTierBadge.className = `key-badge ${currentUser.tier}`;
     
@@ -141,10 +162,15 @@ async function fetchProfile() {
   }
 }
 
-function showAuthScreen() {
+function showAuthScreen(msg) {
   authOverlay.style.display = 'flex';
-  mainApp.style.display = 'none';
-  authErrorMsg.style.display = 'none';
+  if (msg) {
+    authErrorMsg.textContent = msg;
+    authErrorMsg.style.display = 'block';
+    authErrorMsg.style.color = '#38bdf8';
+  } else {
+    authErrorMsg.style.display = 'none';
+  }
 }
 
 function hideAuthScreen() {
@@ -156,7 +182,14 @@ function logout() {
   localStorage.removeItem('aetherflow_token');
   currentUser = null;
   currentApi = null;
-  showAuthScreen();
+  initGuestMode();
+}
+
+const btnGuestBrowse = document.getElementById('btn-guest-browse');
+if (btnGuestBrowse) {
+  btnGuestBrowse.addEventListener('click', () => {
+    initGuestMode();
+  });
 }
 
 // Toggle Register / Login Form
@@ -228,6 +261,11 @@ btnLogout.addEventListener('click', logout);
 // --- NAVIGATION TABS VIEW CONTROL ---
 
 function switchView(viewName) {
+  if (!currentUser && (viewName === 'apis' || viewName === 'billing' || viewName === 'admin')) {
+    showAuthScreen(`Log in or Register account to access ${viewName === 'apis' ? 'My APIs' : viewName}.`);
+    return;
+  }
+  
   activeNavView = viewName;
   
   navBtnApis.classList.toggle('active', viewName === 'apis');
@@ -620,7 +658,8 @@ async function fetchMarketplace() {
   container.innerHTML = '<div class="loading-state">Loading APIs...</div>';
   
   try {
-    const res = await fetch('/api/marketplace', { headers: getAuthHeaders() });
+    const headers = getAuthToken() ? getAuthHeaders() : { 'Content-Type': 'application/json' };
+    const res = await fetch('/api/marketplace', { headers });
     if (!res.ok) throw new Error('Failed to load marketplace');
     const apis = await res.json();
     
@@ -639,7 +678,11 @@ async function fetchMarketplace() {
       const priceClass = isPaid ? 'price-tag-badge paid' : 'price-tag-badge';
       
       let buttonHtml = '';
-      if (api.isSubscribed) {
+      if (!currentUser) {
+        buttonHtml = `<button class="market-btn" onclick="promptGuestLogin('Log in or Register account to subscribe to ${api.name}')">Subscribe to API</button>`;
+      } else if (api.isOwner) {
+        buttonHtml = `<button class="market-btn subscribed" disabled style="background: rgba(16,185,129,0.15); color: #10b981;">Your API</button>`;
+      } else if (api.isSubscribed) {
         buttonHtml = `<button class="market-btn subscribed" disabled>Subscribed</button>`;
       } else {
         buttonHtml = `<button class="market-btn" onclick="subscribeMarketplaceApi('${api.id}', ${api.priceBDT})">Subscribe</button>`;
@@ -1350,7 +1393,8 @@ if (tgBtnSourceUrl) {
   });
 }
 
-// Run Extraction
+let lastExtractedFlow = null;
+
 if (tgBtnRun) {
   tgBtnRun.addEventListener('click', async () => {
     const prompt = tgInputPrompt.value.trim();
@@ -1383,6 +1427,9 @@ if (tgBtnRun) {
     tgBtnRun.querySelector('.btn-text').textContent = 'Extracting...';
     tgBtnRun.querySelector('.loader-spinner').style.display = 'block';
     
+    const tgBtnPublish = document.getElementById('tg-btn-publish-marketplace');
+    if (tgBtnPublish) tgBtnPublish.style.display = 'none';
+
     tgStatusBadge.textContent = 'Running';
     tgStatusBadge.style.background = 'rgba(234, 179, 8, 0.1)';
     tgStatusBadge.style.color = '#eab308';
@@ -1394,9 +1441,10 @@ if (tgBtnRun) {
     const startTime = performance.now();
 
     try {
+      const headers = getAuthToken() ? getAuthHeaders() : { 'Content-Type': 'application/json' };
       const res = await fetch('/api/testing-ground/extract', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({
           content,
           contentType: tgSourceType,
@@ -1415,6 +1463,13 @@ if (tgBtnRun) {
         tgStatusBadge.style.background = 'rgba(16, 185, 129, 0.1)';
         tgStatusBadge.style.color = '#10b981';
         tgOutputJson.textContent = JSON.stringify(data.data, null, 2);
+
+        // Store extraction flow context for publishing
+        lastExtractedFlow = {
+          targetUrl: tgSourceType === 'url' ? content : '',
+          prompt: prompt
+        };
+        if (tgBtnPublish) tgBtnPublish.style.display = 'inline-flex';
       } else {
         tgStatusBadge.textContent = 'Error';
         tgStatusBadge.style.background = 'rgba(239, 68, 68, 0.1)';
@@ -1434,6 +1489,51 @@ if (tgBtnRun) {
       tgBtnRun.disabled = false;
       tgBtnRun.querySelector('.btn-text').textContent = 'Test AI Extraction';
       tgBtnRun.querySelector('.loader-spinner').style.display = 'none';
+    }
+  });
+}
+
+// Send Testing Ground extracted API to Marketplace
+const tgBtnPublishMarketplace = document.getElementById('tg-btn-publish-marketplace');
+if (tgBtnPublishMarketplace) {
+  tgBtnPublishMarketplace.addEventListener('click', async () => {
+    if (!lastExtractedFlow) {
+      alert('Please run a successful AI extraction test first.');
+      return;
+    }
+    if (!currentUser) {
+      showAuthScreen('Log in or Register account to send your extracted API to the Marketplace.');
+      return;
+    }
+    
+    const apiName = prompt('Enter a name for your Marketplace API:', `AI Extractor: ${lastExtractedFlow.prompt.substring(0, 30)}`);
+    if (!apiName || !apiName.trim()) return;
+    
+    const priceStr = prompt('Set subscription price in BDT (Enter 0 for FREE):', '0');
+    if (priceStr === null) return;
+    const priceBDT = Math.max(0, parseInt(priceStr) || 0);
+    
+    try {
+      const res = await fetch('/api/apis/create-from-extraction', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: apiName.trim(),
+          description: `AI extraction flow for ${lastExtractedFlow.targetUrl || 'custom text'} with prompt "${lastExtractedFlow.prompt}"`,
+          targetUrl: lastExtractedFlow.targetUrl,
+          prompt: lastExtractedFlow.prompt,
+          priceBDT: priceBDT,
+          isPublic: true
+        })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to publish API to Marketplace');
+      
+      alert('🚀 Your API has been published to the Marketplace successfully!');
+      switchView('marketplace');
+    } catch (e) {
+      alert('Failed to publish API: ' + e.message);
     }
   });
 }
