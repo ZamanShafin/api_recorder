@@ -350,17 +350,25 @@ async function runFlow(steps, params) {
   });
   
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    viewport: { width: 1280, height: 720 },
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+    viewport: { width: 1366, height: 768 },
     locale: 'en-US',
-    timezoneId: 'America/New_York'
+    timezoneId: 'America/New_York',
+    extraHTTPHeaders: {
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Sec-Ch-Ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Upgrade-Insecure-Requests': '1'
+    }
   });
   
-  // Disable navigator.webdriver
+  // Disable navigator.webdriver & stealth mocks
   await context.addInitScript(() => {
-    Object.defineProperty(navigator, 'webdriver', {
-      get: () => undefined,
-    });
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+    window.chrome = { runtime: {} };
   });
 
   const page = await context.newPage();
@@ -432,10 +440,10 @@ async function runFlow(steps, params) {
           }
           console.log(`[Replayer] Extracting structured data using LLM: "${promptText}"`);
           
-          // Poll body innerText to ensure dynamic JS components (IMDb, React, Vue) finish rendering
+          // Fast non-blocking JS evaluation of body innerText
           let bodyText = '';
           for (let attempt = 0; attempt < 6; attempt++) {
-            bodyText = (await page.locator('body').innerText()).trim();
+            bodyText = (await page.evaluate(() => (document.body ? document.body.innerText : document.documentElement.innerText) || '')).trim();
             if (bodyText.length > 200) break;
             await page.waitForTimeout(1000);
           }
@@ -965,7 +973,7 @@ app.post('/api/testing-ground/extract', requireAuth, async (req, res) => {
         } catch (gotoErr) {
           console.warn(`[Testing Ground] Navigation warning for ${content}:`, gotoErr.message);
         }
-        textToExtract = await page.locator('body').innerText();
+        textToExtract = await page.evaluate(() => (document.body ? document.body.innerText : document.documentElement.innerText) || '');
       } finally {
         await browser.close();
       }
