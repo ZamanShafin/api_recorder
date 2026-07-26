@@ -381,12 +381,18 @@ async function runFlow(steps, params) {
       
       switch (step.action) {
         case 'navigate':
-          console.log(`[Replayer] Navigating to: ${step.url}`);
+          let targetUrl = step.url;
+          if (paramMatch && paramMatch.defaultValue && value) {
+            targetUrl = targetUrl.replace(paramMatch.defaultValue, value);
+          } else if (value && (value.startsWith('http://') || value.startsWith('https://'))) {
+            targetUrl = value;
+          }
+          console.log(`[Replayer] Navigating to: ${targetUrl}`);
           try {
-            await page.goto(step.url, { waitUntil: 'commit', timeout: 20000 });
+            await page.goto(targetUrl, { waitUntil: 'commit', timeout: 20000 });
             await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
           } catch (gotoErr) {
-            console.warn(`[Replayer] Navigation warning for ${step.url}:`, gotoErr.message);
+            console.warn(`[Replayer] Navigation warning for ${targetUrl}:`, gotoErr.message);
           }
           break;
         case 'click':
@@ -415,7 +421,11 @@ async function runFlow(steps, params) {
           results[step.label] = text.trim();
           break;
         case 'extract_llm':
-          console.log(`[Replayer] Extracting structured data using LLM: "${step.prompt}"`);
+          let promptText = step.prompt;
+          if (paramMatch && paramMatch.defaultValue && value) {
+            promptText = promptText.replace(paramMatch.defaultValue, value);
+          }
+          console.log(`[Replayer] Extracting structured data using LLM: "${promptText}"`);
           
           // Poll body innerText to ensure dynamic JS components (IMDb, React, Vue) finish rendering
           let bodyText = '';
@@ -426,7 +436,7 @@ async function runFlow(steps, params) {
           }
           
           try {
-            const extractedData = await runLlmExtraction(bodyText, step.prompt);
+            const extractedData = await runLlmExtraction(bodyText, promptText);
             results[step.label] = extractedData;
           } catch (llmErr) {
             console.error("[Replayer LLM Error]:", llmErr);
