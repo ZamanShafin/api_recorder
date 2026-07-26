@@ -343,12 +343,14 @@ async function runFlow(steps, params) {
     args: [
       '--disable-blink-features=AutomationControlled',
       '--no-sandbox',
-      '--disable-setuid-sandbox'
+      '--disable-setuid-sandbox',
+      '--disable-http2',
+      '--ignore-certificate-errors'
     ]
   });
   
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 720 },
     locale: 'en-US',
     timezoneId: 'America/New_York'
@@ -376,7 +378,16 @@ async function runFlow(steps, params) {
       switch (step.action) {
         case 'navigate':
           console.log(`[Replayer] Navigating to: ${step.url}`);
-          await page.goto(step.url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+          try {
+            await page.goto(step.url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+          } catch (gotoErr) {
+            if (gotoErr.message.includes('ERR_HTTP2') || gotoErr.message.includes('net::ERR_')) {
+              console.warn(`[Replayer] Retrying navigation for ${step.url} with commit fallback...`);
+              await page.goto(step.url, { waitUntil: 'commit', timeout: 25000 }).catch(() => {});
+            } else {
+              throw gotoErr;
+            }
+          }
           break;
         case 'click':
           console.log(`[Replayer] Clicking: ${step.selector}`);
@@ -908,16 +919,30 @@ app.post('/api/testing-ground/extract', requireAuth, async (req, res) => {
         args: [
           '--disable-blink-features=AutomationControlled',
           '--no-sandbox',
-          '--disable-setuid-sandbox'
+          '--disable-setuid-sandbox',
+          '--disable-http2',
+          '--ignore-certificate-errors'
         ]
       });
       const context = await browser.newContext({
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        viewport: { width: 1280, height: 720 },
+        locale: 'en-US',
+        timezoneId: 'America/New_York'
       });
       const page = await context.newPage();
       
       try {
-        await page.goto(content, { waitUntil: 'domcontentloaded', timeout: 25000 });
+        try {
+          await page.goto(content, { waitUntil: 'domcontentloaded', timeout: 25000 });
+        } catch (gotoErr) {
+          if (gotoErr.message.includes('ERR_HTTP2') || gotoErr.message.includes('net::ERR_')) {
+            console.warn(`[Testing Ground] Retrying navigation for ${content} with commit fallback...`);
+            await page.goto(content, { waitUntil: 'commit', timeout: 25000 }).catch(() => {});
+          } else {
+            throw gotoErr;
+          }
+        }
         textToExtract = await page.locator('body').innerText();
       } finally {
         await browser.close();
