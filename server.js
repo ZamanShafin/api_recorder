@@ -382,10 +382,15 @@ async function runFlow(steps, params) {
       switch (step.action) {
         case 'navigate':
           let targetUrl = step.url;
-          if (paramMatch && paramMatch.defaultValue && value) {
-            targetUrl = targetUrl.replace(paramMatch.defaultValue, value);
-          } else if (value && (value.startsWith('http://') || value.startsWith('https://'))) {
-            targetUrl = value;
+          if (paramMatch && value) {
+            const defVal = paramMatch.defaultValue;
+            if (defVal && targetUrl.includes(defVal)) {
+              targetUrl = targetUrl.replace(defVal, value);
+            } else if (targetUrl.includes('=')) {
+              targetUrl = targetUrl.replace(/=([^&]+)/, `=${encodeURIComponent(value)}`);
+            } else if (value.startsWith('http://') || value.startsWith('https://')) {
+              targetUrl = value;
+            }
           }
           console.log(`[Replayer] Navigating to: ${targetUrl}`);
           try {
@@ -876,11 +881,13 @@ app.post('/api/run/:id', async (req, res) => {
   
   // Format parameters override
   const runParams = [];
-  for (const param of api.parameters) {
+  for (const param of (api.parameters || [])) {
     const value = req.body[param.name];
     runParams.push({
       stepIndex: param.stepIndex,
-      value: value !== undefined ? value : param.defaultValue
+      name: param.name,
+      defaultValue: param.defaultValue,
+      value: (value !== undefined && value !== null && String(value).trim() !== '') ? String(value).trim() : param.defaultValue
     });
   }
   
