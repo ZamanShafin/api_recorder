@@ -958,6 +958,47 @@
       "steps": [
         {
           "action": "navigate",
+          "url": "https://waltonbd.com/index.php?route=product/search&search=Water%20Heater&description=true"
+        },
+        {
+          "action": "extract_llm",
+          "label": "extracted_list",
+          "prompt": "Extract all matching Walton products with model code, price in BDT, stock status (AVAILABLE, LIMITED, OUT OF STOCK), and specifications"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "search_query",
+          "stepIndex": 0,
+          "defaultValue": "Water Heater",
+          "description": "The product keyword used to filter the website's search results."
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extracted_list",
+          "stepIndex": 1,
+          "description": "A list of products extracted from the search results page based on the search query."
+        }
+      ],
+      "userId": "system",
+      "isPublic": true,
+      "priceBDT": 1000,
+      "createdAt": "2026-07-26T04:14:48.543Z"
+    },
+    {
+      "id": "api_dcda267a9e66",
+      "name": "Walton Product Search API",
+      "description": "An API definition that retrieves product search results from the Walton Bangladesh website based on specific search queries.",
+      "analysis": "The automation navigates to the Walton e-commerce site, executes a specific product search using URL parameters, and uses an LLM to extract product data from the results page.",
+      "clarifications": [
+        "Should the search parameters be extended to support filters like category, brand, or price ranges if available on the platform?",
+        "How should the automation handle scenarios where the search query returns zero results or a 'product not found' page?",
+        "Is it necessary to implement pagination handling to extract results beyond the first page if the search returns a large volume of products?"
+      ],
+      "steps": [
+        {
+          "action": "navigate",
           "url": "https://waltonbd.com/"
         },
         {
@@ -966,8 +1007,8 @@
         },
         {
           "action": "extract_llm",
-          "label": "extracted_list",
-          "prompt": "Search Query"
+          "prompt": "Extract the main list of search results or primary data shown on the final page with all key labels and values.",
+          "label": "extracted_data"
         }
       ],
       "parameters": [
@@ -975,20 +1016,20 @@
           "name": "search_query",
           "stepIndex": 1,
           "defaultValue": "Water Heater",
-          "description": "The product keyword used to filter the website's search results."
+          "description": "The term to search for within the Walton product catalog."
         }
       ],
       "outputs": [
         {
-          "label": "extracted_list",
+          "label": "extracted_data",
           "stepIndex": 2,
-          "description": "A list of products extracted from the search results page based on the search query."
+          "description": "A structured list of products containing relevant details such as product names, prices, and status extracted from the search results page."
         }
       ],
-      "userId": "system",
+      "userId": "usr_5cc37dd6a113",
       "isPublic": true,
-      "priceBDT": 1000,
-      "createdAt": "2026-07-26T04:14:48.543Z"
+      "priceBDT": 0,
+      "createdAt": "2026-07-26T04:21:11.367Z"
     }
   ],
   "users": [
@@ -1238,6 +1279,18 @@
       "userId": "usr_5cc37dd6a113",
       "apiId": "api_3f92b05c1450",
       "timestamp": "2026-07-26T04:17:29.798Z"
+    },
+    {
+      "id": "run_487c52e424d7",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_3f92b05c1450",
+      "timestamp": "2026-07-26T04:20:01.255Z"
+    },
+    {
+      "id": "run_708129b99afd",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_dcda267a9e66",
+      "timestamp": "2026-07-26T04:21:34.463Z"
     }
   ],
   "transactions": [
