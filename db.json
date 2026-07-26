@@ -917,12 +917,12 @@
       "steps": [
         {
           "action": "navigate",
-          "url": "https://waltonbd.com/appliances/water-heater-geyser"
+          "url": "https://waltonbd.com/index.php?route=product/search&search=Water%20Heater&description=true"
         },
         {
           "action": "extract_llm",
           "label": "extracted_list",
-          "prompt": "Extract matching Walton product list with model name, price in BDT, capacity or specifications, and key features"
+          "prompt": "Extract all matching Walton products with model code, price in BDT, stock status (AVAILABLE, LIMITED, OUT OF STOCK), and specifications"
         }
       ],
       "parameters": [
@@ -1226,6 +1226,18 @@
       "userId": "usr_5cc37dd6a113",
       "apiId": "api_3f92b05c1450",
       "timestamp": "2026-07-26T04:15:09.339Z"
+    },
+    {
+      "id": "run_6db277dcc49a",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_3f92b05c1450",
+      "timestamp": "2026-07-26T04:17:12.027Z"
+    },
+    {
+      "id": "run_4eb0787ccd52",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_3f92b05c1450",
+      "timestamp": "2026-07-26T04:17:29.798Z"
     }
   ],
   "transactions": [

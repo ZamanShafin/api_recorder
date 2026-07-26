@@ -393,18 +393,7 @@ async function runFlow(steps, params) {
           if (paramMatch && value) {
             const defVal = paramMatch.defaultValue;
             if (targetUrl.includes('waltonbd.com')) {
-              const q = String(value).toLowerCase();
-              if (q.includes('fridge') || q.includes('refrig') || q.includes('freezer')) {
-                targetUrl = 'https://waltonbd.com/appliances/refrigerator-freezer';
-              } else if (q.includes('heater') || q.includes('geyser') || q.includes('water')) {
-                targetUrl = 'https://waltonbd.com/appliances/water-heater-geyser';
-              } else if (q.includes('ac') || q.includes('air') || q.includes('condition')) {
-                targetUrl = 'https://waltonbd.com/air-conditioner';
-              } else if (q.includes('tv') || q.includes('televis')) {
-                targetUrl = 'https://waltonbd.com/television';
-              } else if (defVal && targetUrl.includes(defVal)) {
-                targetUrl = targetUrl.replace(defVal, encodeURIComponent(value));
-              }
+              targetUrl = `https://waltonbd.com/index.php?route=product/search&search=${encodeURIComponent(value)}&description=true`;
             } else if (defVal && targetUrl.includes(defVal)) {
               targetUrl = targetUrl.replace(defVal, value);
             } else if (targetUrl.includes('=')) {
