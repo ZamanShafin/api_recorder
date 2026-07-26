@@ -442,11 +442,13 @@ async function runFlow(steps, params) {
           }
           console.log(`[Replayer] Extracting structured data using LLM: "${promptText}"`);
           
-          // Fast non-blocking JS evaluation of body innerText
+          // Wait for dynamic AJAX product grids to render
+          await page.waitForTimeout(2500);
+          
           let bodyText = '';
-          for (let attempt = 0; attempt < 6; attempt++) {
+          for (let attempt = 0; attempt < 5; attempt++) {
             bodyText = (await page.evaluate(() => (document.body ? document.body.innerText : document.documentElement.innerText) || '')).trim();
-            if (bodyText.length > 200) break;
+            if (bodyText.length > 800 || bodyText.includes('AVAILABLE') || bodyText.includes('LIMITED') || bodyText.includes('Price')) break;
             await page.waitForTimeout(1000);
           }
           
