@@ -98,6 +98,852 @@
       "isPublic": true,
       "priceBDT": 0,
       "createdAt": "2026-07-18T06:32:01.703Z"
+    },
+    {
+      "id": "api_ae2f49e0d90a",
+      "name": "booking.com API",
+      "description": "A custom automated API generated from user actions recorded on booking.com API.",
+      "analysis": "This API automates the process of interacting with booking.com API and performing user recorded actions.",
+      "clarifications": [
+        "Should the API extract more elements, or is the current single-page flow sufficient?",
+        "Do you need to support custom parameters for input fields?"
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/searchresults.html?ss=Kuala+Lumpur&ssne=Kuala+Lumpur&ssne_untouched=Kuala+Lumpur&label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594&lang=en-us&sb=1&src_elem=sb&src=searchresults&dest_id=-2403010&dest_type=city&checkin=2026-07-17&checkout=2026-07-18&group_adults=6&no_rooms=1&group_children=2&age=13&age=12&sb_travel_purpose=business"
+        },
+        {
+          "action": "extract_llm",
+          "prompt": "Extract the main list of search results or primary data shown on the final page with all key labels and values.",
+          "label": "extracted_data"
+        }
+      ],
+      "parameters": [],
+      "outputs": [
+        {
+          "label": "extracted_data",
+          "stepIndex": 1,
+          "description": "AI Extracted data for query \"Extract the main list of search results or primary data shown on the final page with all key labels and values.\""
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-18T08:28:46.939Z"
+    },
+    {
+      "id": "api_080898a6887c",
+      "name": "Booking.com Search Scraper",
+      "description": "dffffffffffffffffffffffffffdfsdfdsfdsf",
+      "analysis": "The automation navigates to a specific Booking.com search page and utilizes an LLM-based extraction step to parse the visible listing data into a structured format.",
+      "clarifications": [
+        "The URL contains session-specific and tracking parameters (sid, aid, label). It is recommended to replace these with a clean URL or specific search query parameters to avoid session expiration.",
+        "Does the target search page require interaction (e.g., date selection or guest count adjustment) before the final list is generated, or should the automation support additional search filters?",
+        "Consider adding a 'wait_for' element condition to ensure the dynamic hotel listings have fully loaded before the LLM extraction begins."
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/index.html?label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594"
+        },
+        {
+          "action": "extract_llm",
+          "prompt": "Extract the main list of search results or primary data shown on the final page with all key labels and values.",
+          "label": "extracted_data"
+        }
+      ],
+      "parameters": [],
+      "outputs": [
+        {
+          "label": "extracted_data",
+          "stepIndex": 1,
+          "description": "Structured list of hotel search results including names, pricing, and key accommodation details."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": false,
+      "priceBDT": 10,
+      "createdAt": "2026-07-20T17:42:15.266Z"
+    },
+    {
+      "id": "api_719842bb0172",
+      "name": "Booking.com Hotel Search API",
+      "description": "Automates the process of searching for accommodation on Booking.com for a specific location, date range, and guest occupancy to retrieve hotel listing data.",
+      "analysis": "The automation performs a targeted search on Booking.com by navigating to a search results URL containing location, date, and guest information, followed by an LLM-based extraction of the hotel listings found on that page.",
+      "clarifications": [
+        "Should the API support dynamic date ranges (e.g., 'next weekend') or must dates be strictly provided as 'YYYY-MM-DD'?",
+        "How should the system handle pagination if the search results span multiple pages?",
+        "Is it necessary to implement proxy rotation or delay mechanisms to avoid bot detection triggers by Booking.com?"
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/index.html?label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/searchresults.html?ss=Dhaka%2C+Bangladesh&efdco=1&label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594&lang=en-us&sb=1&src_elem=sb&src=index&dest_id=-2737683&dest_type=city&checkin=2026-08-05&checkout=2026-08-06&group_adults=4&no_rooms=1&group_children=3&age=15&age=15&age=15"
+        },
+        {
+          "action": "extract_llm",
+          "prompt": "Extract the main list of search results or primary data shown on the final page with all key labels and values.",
+          "label": "extracted_data"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "destination",
+          "stepIndex": 1,
+          "defaultValue": "Dhaka, Bangladesh",
+          "description": "The city or region to search for accommodation."
+        },
+        {
+          "name": "checkin_date",
+          "stepIndex": 1,
+          "defaultValue": "2026-08-05",
+          "description": "The date the guest intends to arrive."
+        },
+        {
+          "name": "checkout_date",
+          "stepIndex": 1,
+          "defaultValue": "2026-08-06",
+          "description": "The date the guest intends to depart."
+        },
+        {
+          "name": "adult_count",
+          "stepIndex": 1,
+          "defaultValue": "4",
+          "description": "Number of adults in the booking party."
+        },
+        {
+          "name": "children_ages",
+          "stepIndex": 1,
+          "defaultValue": "15,15,15",
+          "description": "A comma-separated list of ages for the children in the booking party."
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extracted_data",
+          "stepIndex": 2,
+          "description": "A structured list of hotel search results including names, prices, and key property features."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": false,
+      "priceBDT": 50,
+      "createdAt": "2026-07-20T18:11:55.413Z"
+    },
+    {
+      "id": "api_bc78a38d6f8f",
+      "name": "Booking.com Hotel Search API",
+      "description": "An API definition to retrieve hotel search results from Booking.com based on location, dates, and occupancy parameters.",
+      "analysis": "The automation navigates to a predefined Booking.com search results page, refining parameters such as location, check-in/out dates, and guest composition before extracting the resulting hotel data.",
+      "clarifications": [
+        "Does the application handle rate-limiting or anti-scraping mechanisms (like captchas) when requesting results programmatically?",
+        "Should the API support dynamic currency conversion or sorting options (e.g., price low to high, guest rating) which are common in Booking.com URL structures?",
+        "How should the system handle the array of children's ages, which are currently passed as individual 'age' parameters in the URL query string?"
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/searchresults.html?ss=Dhaka%2C+Bangladesh&efdco=1&label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594&lang=en-us&sb=1&src_elem=sb&src=index&dest_id=-2737683&dest_type=city&checkin=2026-08-05&checkout=2026-08-06&group_adults=4&no_rooms=1&group_children=3&age=15&age=15&age=15"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/searchresults.html?ss=Dhaka&ssne=Dhaka&ssne_untouched=Dhaka&label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594&lang=en-us&sb=1&src_elem=sb&src=searchresults&dest_id=-2737683&dest_type=city&checkin=2026-08-05&checkout=2026-08-06&group_adults=4&no_rooms=1&group_children=3&age=15&age=12&age=15"
+        },
+        {
+          "action": "extract_llm",
+          "prompt": "Extract the main list of search results or primary data shown on the final page with all key labels and values.",
+          "label": "extracted_data"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "destination",
+          "stepIndex": 1,
+          "defaultValue": "Dhaka",
+          "description": "The destination city for the hotel search."
+        },
+        {
+          "name": "checkin_date",
+          "stepIndex": 1,
+          "defaultValue": "2026-08-05",
+          "description": "The check-in date in YYYY-MM-DD format."
+        },
+        {
+          "name": "checkout_date",
+          "stepIndex": 1,
+          "defaultValue": "2026-08-06",
+          "description": "The check-out date in YYYY-MM-DD format."
+        },
+        {
+          "name": "adult_count",
+          "stepIndex": 1,
+          "defaultValue": "4",
+          "description": "Number of adults for the booking."
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extracted_data",
+          "stepIndex": 2,
+          "description": "A structured list of hotels found on the results page, including names, pricing, availability, and key amenity labels."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-20T18:33:27.148Z"
+    },
+    {
+      "id": "api_eca0d8e59094",
+      "name": "Booking.com Hotel Search API",
+      "description": "An automated workflow that navigates to Booking.com and executes a hotel search based on location, dates, occupancy, and room configuration, subsequently extracting the search results.",
+      "analysis": "The automation initializes a browser session on the Booking.com homepage and performs a direct search using a pre-constructed URL containing query parameters for destination, check-in/out dates, and guest demographics. Finally, it uses an LLM to parse the structured hotel listings from the search results page.",
+      "clarifications": [
+        "Are there specific filter criteria (e.g., price range, star rating, amenities) that should be added to the URL parameters to refine the search?",
+        "How should the automation handle date validation, specifically if the requested check-in date is in the past or conflicts with minimum stay requirements?",
+        "Should the extraction step be configured to handle pagination if the search results return multiple pages of hotels?"
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/index.html?label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/searchresults.html?ss=Dhaka%2C+Bangladesh&efdco=1&label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594&lang=en-us&sb=1&src_elem=sb&src=index&dest_id=-2737683&dest_type=city&checkin=2026-07-22&checkout=2026-07-23&group_adults=3&no_rooms=2&group_children=1&age=17"
+        },
+        {
+          "action": "extract_llm",
+          "prompt": "Extract the main list of search results or primary data shown on the final page with all key labels and values.",
+          "label": "extracted_data"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "destination",
+          "stepIndex": 1,
+          "defaultValue": "Dhaka, Bangladesh",
+          "description": "The city or destination name to search for hotels."
+        },
+        {
+          "name": "checkin_date",
+          "stepIndex": 1,
+          "defaultValue": "2026-07-22",
+          "description": "The date the guest intends to check into the hotel."
+        },
+        {
+          "name": "checkout_date",
+          "stepIndex": 1,
+          "defaultValue": "2026-07-23",
+          "description": "The date the guest intends to check out of the hotel."
+        },
+        {
+          "name": "group_adults",
+          "stepIndex": 1,
+          "defaultValue": "3",
+          "description": "The number of adult guests."
+        },
+        {
+          "name": "no_rooms",
+          "stepIndex": 1,
+          "defaultValue": "2",
+          "description": "The number of hotel rooms required."
+        },
+        {
+          "name": "children_age",
+          "stepIndex": 1,
+          "defaultValue": "17",
+          "description": "The age of the child included in the booking."
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extracted_data",
+          "stepIndex": 2,
+          "description": "A list of hotel search results including property names, pricing, availability, and key attributes extracted from the results page."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-20T18:34:22.906Z"
+    },
+    {
+      "id": "api_53a6d355a84b",
+      "name": "Booking.com Search API",
+      "description": "An automated API interface to retrieve hotel and accommodation search results from Booking.com based on location, dates, and occupancy criteria.",
+      "analysis": "The automation performs a targeted search on Booking.com by navigating to a parameterized search result URL and extracting the primary accommodation data from the rendered page.",
+      "clarifications": [
+        "The search result URL contains session-specific cookies and labels (sid, aid, label) that may expire or become invalid; consider using a more robust search endpoint if available.",
+        "The 'group_adults' and 'no_rooms' parameters are set to 7; verify if this count triggers business travel or group booking restrictions on the platform.",
+        "Consider adding handling for pagination if the intent is to scrape more than the first page of results."
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/index.html?label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/searchresults.html?ss=Kuala+Lumpur%2C+Malaysia&efdco=1&label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594&lang=en-us&sb=1&src_elem=sb&src=index&dest_id=-2403010&dest_type=city&checkin=2026-07-26&checkout=2026-07-27&group_adults=7&no_rooms=7&group_children=0"
+        },
+        {
+          "action": "extract_llm",
+          "prompt": "Extract the main list of search results or primary data shown on the final page with all key labels and values.",
+          "label": "extracted_data"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "location",
+          "stepIndex": 1,
+          "defaultValue": "Kuala+Lumpur,Malaysia",
+          "description": "The destination city or region for the accommodation search."
+        },
+        {
+          "name": "checkin_date",
+          "stepIndex": 1,
+          "defaultValue": "2026-07-26",
+          "description": "The start date for the hotel stay."
+        },
+        {
+          "name": "checkout_date",
+          "stepIndex": 1,
+          "defaultValue": "2026-07-27",
+          "description": "The end date for the hotel stay."
+        },
+        {
+          "name": "group_adults",
+          "stepIndex": 1,
+          "defaultValue": "7",
+          "description": "The total number of adults in the booking party."
+        },
+        {
+          "name": "no_rooms",
+          "stepIndex": 1,
+          "defaultValue": "7",
+          "description": "The total number of rooms required."
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extracted_data",
+          "stepIndex": 2,
+          "description": "A structured list of hotel search results, including property names, pricing, availability, and key amenity labels."
+        }
+      ],
+      "userId": "system",
+      "isPublic": false,
+      "priceBDT": 110,
+      "createdAt": "2026-07-25T15:26:13.542Z"
+    },
+    {
+      "id": "api_1e7f6faab8bd",
+      "name": "IMDb TV Chart Scraper",
+      "description": "An API definition to navigate IMDb movie and TV show pages and extract data from the top-rated TV chart.",
+      "analysis": "The automation navigates through specific movie title pages before settling on the top-rated TV shows chart to perform a data extraction using an LLM prompt.",
+      "clarifications": [
+        "The current flow navigates to two specific pages before the final destination; should these intermediate steps be removed to improve performance and reliability?",
+        "Does the 'extract_llm' step require specific JSON formatting, or is it intended to capture free-text summaries of the table contents?",
+        "Consider implementing a delay or wait-for-element logic to ensure the dynamic content of the TV chart is fully loaded before the extraction occurs."
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.imdb.com/chart/top/"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.imdb.com/title/tt0111161/?ref_=chttp_t_1"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.imdb.com/chart/toptv/?ref_=tt_nv_menu"
+        },
+        {
+          "action": "extract_llm",
+          "prompt": "Extract the main list of search results or primary data shown on the final page with all key labels and values.",
+          "label": "extracted_data"
+        }
+      ],
+      "parameters": [],
+      "outputs": [
+        {
+          "label": "extracted_data",
+          "stepIndex": 3,
+          "description": "A structured capture of the top-rated TV shows list, including keys such as title, rating, and release year."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 20,
+      "createdAt": "2026-07-25T15:49:00.123Z"
+    },
+    {
+      "id": "api_5365af341b84",
+      "name": "IMDb Rating Breakdown Scraper",
+      "description": "An API definition that retrieves detailed user rating distribution data for a specific movie title on IMDb.",
+      "analysis": "The automation navigates to a specific movie's rating statistics page on IMDb and utilizes an LLM to parse the rating distribution data, including vote counts and percentages for each star rating.",
+      "clarifications": [
+        "Consider if the 'title_id' should be parameterized to allow fetching ratings for any movie, rather than being hardcoded to 'tt5491994'.",
+        "Account for potential anti-bot measures like CAPTCHAs that might appear when scraping IMDb, which could require residential proxies or browser fingerprinting."
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.imdb.com/title/tt5491994/ratings/?ref_=tt_ov_rat"
+        },
+        {
+          "action": "extract_llm",
+          "prompt": "Extract the main list of search results or primary data shown on the final page with all key labels and values.",
+          "label": "extracted_data"
+        }
+      ],
+      "parameters": [],
+      "outputs": [
+        {
+          "label": "extracted_data",
+          "stepIndex": 1,
+          "description": "The structured rating distribution breakdown including vote counts per star, average rating, and total number of ratings."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-25T16:08:35.624Z"
+    },
+    {
+      "id": "api_ed14ececd39b",
+      "name": "NASDAQ Stock Data Extractor",
+      "description": "An API to retrieve real-time market data for a specific stock ticker from the NASDAQ website, including price, range, and volatility metrics.",
+      "analysis": "The automation navigates to the NASDAQ website, transitions to a specific stock's detail page, and utilizes an LLM to parse key financial metrics from the rendered interface.",
+      "clarifications": [
+        "Should the API support dynamic ticker symbols as a parameter instead of a hardcoded URL?",
+        "How should the system handle potential 404 errors or redirection pages if the ticker symbol provided is invalid or delisted?",
+        "Consider adding a wait period or polling mechanism before extraction to ensure dynamic JavaScript content has fully loaded."
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.nasdaq.com/"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.nasdaq.com/market-activity/stocks/tsla"
+        },
+        {
+          "action": "extract_llm",
+          "label": "extract_stock_name__current_price__day_high_low__and_52_week_range",
+          "prompt": "Extract stock name, current price, day high/low, and 52 week range"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "ticker_symbol",
+          "stepIndex": 1,
+          "defaultValue": "tsla",
+          "description": "The stock ticker symbol to retrieve market data for."
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extract_stock_name__current_price__day_high_low__and_52_week_range",
+          "stepIndex": 2,
+          "description": "Extracts the stock company name, current trading price, daily high/low values, and the 52-week trading range."
+        }
+      ],
+      "userId": "system",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-26T01:03:11.970Z"
+    },
+    {
+      "id": "api_ebb4fc486814",
+      "name": "Booking.com Hotel Scraper API",
+      "description": "An API definition that retrieves a list of hotel search results, including names and pricing, from the Booking.com homepage.",
+      "analysis": "The automation navigates to a pre-configured Booking.com search page and uses an LLM-based extraction method to parse relevant hotel data from the search result list.",
+      "clarifications": [
+        "The provided URL contains session-specific and tracking parameters ('sid', 'label') which may expire; recommend using a generic search URL or parameterizing the destination and check-in/check-out dates.",
+        "Booking.com frequently employs anti-bot measures and dynamic content loading; consider implementing a proxy rotation strategy or verifying if the content is rendered fully before extraction.",
+        "Extraction results may vary based on geo-location; consider if location-based parameters should be added to ensure consistent result formatting."
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/index.html?label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594"
+        },
+        {
+          "action": "extract_llm",
+          "label": "extracted_list",
+          "prompt": "List of search results with name and price"
+        }
+      ],
+      "parameters": [],
+      "outputs": [
+        {
+          "label": "extracted_list",
+          "stepIndex": 1,
+          "description": "A structured list containing names and prices for hotels displayed on the search result page."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-26T01:12:11.881Z"
+    },
+    {
+      "id": "api_88581a707848",
+      "name": "Booking.com Hotel Search API",
+      "description": "An automated flow to search for hotel availability on Booking.com for a specific location, date range, and group composition, then extract the resulting property list.",
+      "analysis": "The process navigates to the Booking.com homepage and performs a search using URL parameters for location, check-in/out dates, and occupancy. Finally, it uses an LLM-based extraction to parse the search results page into structured data.",
+      "clarifications": [
+        "The search parameters are embedded directly in the URL; should we refactor this to use a dedicated search form submission if the URL structure changes?",
+        "How should the system handle dynamic session IDs (sid) and tracking labels (aid) that expire or are tied to specific browser sessions?",
+        "Are there specific currency or language preferences required, or should these be added as optional parameters?"
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/index.html?label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.booking.com/searchresults.html?ss=Dhaka%2C+Bangladesh&efdco=1&label=gog235jc-10CAEiBWhvdGVsKIICOOgHSDNYA2gUiAEBmAEzuAEXyAEM2AED6AEB-AEBiAIBqAIBuALdl67SBsACAdICJDQ1ZTc2ZmU3LTRhYTgtNDU3Yi05MWUzLWExZGJkM2FhMDFjN9gCAeACAQ&sid=f01e411eb005498b2c445b695afc3694&aid=397594&lang=en-us&sb=1&src_elem=sb&src=index&dest_id=-2737683&dest_type=city&checkin=2026-07-26&checkout=2026-07-27&group_adults=4&no_rooms=1&group_children=1&age=12"
+        },
+        {
+          "action": "extract_llm",
+          "prompt": "Extract the main list of search results or primary data shown on the final page with all key labels and values.",
+          "label": "extracted_data"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "destination",
+          "stepIndex": 1,
+          "defaultValue": "Dhaka, Bangladesh",
+          "description": "The target city or region for the hotel search."
+        },
+        {
+          "name": "checkin_date",
+          "stepIndex": 1,
+          "defaultValue": "2026-07-26",
+          "description": "The start date for the hotel stay in YYYY-MM-DD format."
+        },
+        {
+          "name": "checkout_date",
+          "stepIndex": 1,
+          "defaultValue": "2026-07-27",
+          "description": "The end date for the hotel stay in YYYY-MM-DD format."
+        },
+        {
+          "name": "adult_count",
+          "stepIndex": 1,
+          "defaultValue": "4",
+          "description": "The number of adults in the party."
+        },
+        {
+          "name": "child_count",
+          "stepIndex": 1,
+          "defaultValue": "1",
+          "description": "The number of children in the party."
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extracted_data",
+          "stepIndex": 2,
+          "description": "A structured list of hotel search results including property names, prices, and key attributes extracted from the results page."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-26T01:13:15.502Z"
+    },
+    {
+      "id": "api_8c5c2b078029",
+      "name": "DSE Company Dividend Lookup API",
+      "description": "An API to fetch cash dividend history for a specific company listed on the Dhaka Stock Exchange.",
+      "analysis": "The automation navigates to the DSE website, directs to a specific company profile page, and uses LLM-based extraction to parse cash dividend information from the page content.",
+      "clarifications": [
+        "Should the automation handle companies with different URL parameter patterns or only those following the 'name=' query string format?",
+        "Is there a preference for returning the raw text extracted by the LLM or structured JSON data?",
+        "Consider adding a validation step to ensure the company name exists before attempting the extraction."
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.dsebd.org/"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.dsebd.org/displayCompany.php?name=RECKITTBEN"
+        },
+        {
+          "action": "extract_llm",
+          "label": "extracted_list",
+          "prompt": "list of cash dividend"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "company_name",
+          "stepIndex": 1,
+          "defaultValue": "RECKITTBEN",
+          "description": "The stock ticker symbol or abbreviated name used to identify the company on the DSE website."
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extracted_list",
+          "stepIndex": 2,
+          "description": "A list of cash dividend events and details extracted from the company profile page."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-26T01:14:35.681Z"
+    },
+    {
+      "id": "api_d89e8c544a92",
+      "name": "IMDb TV Series Filter API",
+      "description": "An API that navigates to the IMDb Top 250 TV list and filters the series based on a user-defined rating criteria using LLM extraction.",
+      "analysis": "The automation navigates to the IMDb website, directs the browser to the Top 250 TV chart page, and utilizes an LLM to parse and extract specific series that meet a defined rating threshold.",
+      "clarifications": [
+        "Should the automation handle pagination if the requested criteria spans multiple pages on IMDb?",
+        "Do you want to support dynamic rating thresholds (e.g., passing a numerical variable) instead of hardcoding them in the prompt?",
+        "Consider adding a wait condition or sleep timer before the extraction step to ensure the dynamic content of the TV chart has fully loaded."
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.imdb.com/"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.imdb.com/chart/toptv/?ref_=hm_nv_menu"
+        },
+        {
+          "action": "extract_llm",
+          "label": "extracted_list",
+          "prompt": "series under 9 ratings"
+        }
+      ],
+      "parameters": [],
+      "outputs": [
+        {
+          "label": "extracted_list",
+          "stepIndex": 2,
+          "description": "A list of TV series from the IMDb Top 250 page that have a rating lower than 9."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-26T01:16:42.084Z"
+    },
+    {
+      "id": "api_14af6935f209",
+      "name": "IMDb Top TV Show Filter API",
+      "description": "An automation that navigates to the IMDb Top 250 TV shows page and uses an LLM to filter and extract a specific subset of shows based on user-defined criteria.",
+      "analysis": "The automation visits a static URL and leverages AI-based extraction to parse the webpage content, transforming unstructured HTML lists into a filtered dataset.",
+      "clarifications": [
+        "Should the automation handle pagination if the list exceeds the initial page view to ensure a complete dataset?",
+        "Is the rating criteria ('under rating 9.0') intended to be a fixed parameter for the LLM prompt, or should it be configurable via an input variable?",
+        "Consider implementing a timeout mechanism to account for potential loading delays of the IMDb dynamic chart elements."
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.imdb.com/chart/toptv/?ref_=hm_nv_menu"
+        },
+        {
+          "action": "extract_llm",
+          "label": "extracted_list",
+          "prompt": "top tv shows under rating 9.0"
+        }
+      ],
+      "parameters": [],
+      "outputs": [
+        {
+          "label": "extracted_list",
+          "stepIndex": 1,
+          "description": "A list of TV shows from the IMDb Top 250 page that have an aggregate rating of less than 9.0."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-26T01:17:54.672Z"
+    },
+    {
+      "id": "api_4afc8e5b973c",
+      "name": "IMDb Movie Data Extractor",
+      "description": "An API definition that searches for a specific movie on IMDb and extracts detailed metadata including title, rating, and cast information.",
+      "analysis": "The automation navigates to IMDb, performs a search query for a specific film, accesses the dedicated title page, and uses LLM-based extraction to parse structured data from the content.",
+      "clarifications": [
+        "Should the search query be generalized to allow passing any movie title instead of hardcoding 'Inception'?",
+        "Does the extraction process need to handle edge cases where a search query might return multiple results or no results at all?",
+        "Would you like to support pagination or extended cast information if the data exceeds a certain length?"
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.imdb.com/chart/toptv/?ref_=hm_nv_menu"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.imdb.com/find/?q=Inception&ref_=chttvtp_nv_srb_sm"
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.imdb.com/title/tt1375666/?ref_=fn_t_1"
+        },
+        {
+          "action": "extract_llm",
+          "label": "extracted_list",
+          "prompt": "Extract title, release year, IMDb rating, vote count, plot summary, and top cast list"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "search_query",
+          "stepIndex": 1,
+          "defaultValue": "Inception",
+          "description": "The movie title to be searched for on the IMDb platform."
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extracted_list",
+          "stepIndex": 3,
+          "description": "Structured movie data including title, release year, IMDb rating, vote count, plot summary, and top cast list."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-26T01:22:28.337Z"
+    },
+    {
+      "id": "api_a3d4ec863073",
+      "name": "Tesla Holdings Extraction API",
+      "description": "An API that retrieves the top 10 holdings associated with Tesla (TSLA) from the Nasdaq market activity page.",
+      "analysis": "The automation navigates to the official Nasdaq stock profile page for TSLA and utilizes an LLM to parse and extract the top 10 holdings information from the page content.",
+      "clarifications": [
+        "Are there specific institutions or fund categories (e.g., ETFs) that this extraction should prioritize, or should it capture all major stakeholders?",
+        "Does the target website contain anti-scraping measures like CAPTCHAs that might necessitate the use of a proxy or headless browser configuration?",
+        "Should the extraction schema be standardized into a JSON array of objects (e.g., {holder_name, percentage_owned}) for better downstream integration?"
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.nasdaq.com/market-activity/stocks/tsla"
+        },
+        {
+          "action": "extract_llm",
+          "label": "extracted_list",
+          "prompt": "extract top 10 holdings with TSLA"
+        }
+      ],
+      "parameters": [],
+      "outputs": [
+        {
+          "label": "extracted_list",
+          "stepIndex": 1,
+          "description": "A list of the top 10 entities or funds holding TSLA stock as extracted by the LLM from the target webpage."
+        }
+      ],
+      "userId": "usr_5cc37dd6a113",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-26T01:31:23.650Z"
+    },
+    {
+      "id": "api_f21ac7fe9428",
+      "name": "DSEBD Financial Metrics Extractor",
+      "description": "An API definition to retrieve specific financial metrics, such as the P/E ratio, for a given company listed on the Dhaka Stock Exchange.",
+      "analysis": "The automation navigates to a specific company profile page on the Dhaka Stock Exchange (DSE) website and uses an LLM-based extraction to fetch the current Price-to-Earnings (P/E) ratio.",
+      "clarifications": [
+        "Should the company name parameter be validated against a list of valid stock symbols to prevent 404 errors?",
+        "Is there a preference for handling cases where the P/E ratio might be 'N/A' or missing on the page?",
+        "Does the target website implement rate limiting or anti-bot measures that might require a delay or proxy rotation between requests?"
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://www.dsebd.org/displayCompany.php?name=MARICO"
+        },
+        {
+          "action": "extract_llm",
+          "label": "extracted_list",
+          "prompt": "Current P/E ratio"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "company_name",
+          "stepIndex": 0,
+          "defaultValue": "MARICO",
+          "description": "The stock symbol or company name identifier for the DSE listed entity."
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extracted_list",
+          "stepIndex": 1,
+          "description": "The current P/E ratio value for the specified company as interpreted by the LLM from the company's profile page."
+        }
+      ],
+      "userId": "system",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-26T01:52:18.705Z"
+    },
+    {
+      "id": "api_walton_search_01",
+      "name": "Walton Product Search API",
+      "description": "An automated API that searches Walton Bangladesh official website for any query (e.g., Water heater, Refrigerator, AC, TV) and extracts structured product listings with prices in BDT.",
+      "analysis": "The automation navigates to the Walton search page with a dynamic search query parameter and uses Gemini LLM extraction to parse matching product models, prices, and specifications.",
+      "clarifications": [
+        "Search query parameter accepts any appliance or electronics keyword."
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://waltonbd.com/index.php?route=product/search&search=water%20heater"
+        },
+        {
+          "action": "extract_llm",
+          "label": "extracted_list",
+          "prompt": "Extract matching Walton product list with model name, price in BDT, capacity or specifications, and key features"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "search_query",
+          "stepIndex": 0,
+          "defaultValue": "water heater",
+          "description": "The appliance search term or keyword on Walton BD website (e.g. 'water heater', 'refrigerator', 'air conditioner', 'television')"
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extracted_list",
+          "stepIndex": 1,
+          "description": "Structured JSON array of matching Walton products with prices in BDT."
+        }
+      ],
+      "userId": "system",
+      "isPublic": true,
+      "priceBDT": 0,
+      "createdAt": "2026-07-26T04:12:00.000Z"
     }
   ],
   "users": [
@@ -111,13 +957,224 @@
       "createdAt": "2026-07-18T06:17:52.550Z"
     }
   ],
-  "subscriptions": [],
+  "subscriptions": [
+    {
+      "id": "sub_32e59a6e04",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_e60dadb63523",
+      "createdAt": "2026-07-20T17:40:11.436Z"
+    }
+  ],
   "api_runs": [
     {
       "id": "run_a63e389d17f4",
       "userId": "usr_5cc37dd6a113",
       "apiId": "api_5c36acf61cb5",
       "timestamp": "2026-07-18T06:19:23.472Z"
+    },
+    {
+      "id": "run_6f5f71fd07a9",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_ae2f49e0d90a",
+      "timestamp": "2026-07-18T08:29:03.817Z"
+    },
+    {
+      "id": "run_bfb629a9a75f",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_5c36acf61cb5",
+      "timestamp": "2026-07-20T17:15:26.595Z"
+    },
+    {
+      "id": "run_ee1f7ed82a3d",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_e60dadb63523",
+      "timestamp": "2026-07-20T17:22:49.065Z"
+    },
+    {
+      "id": "run_7f3fdad9801c",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_e60dadb63523",
+      "timestamp": "2026-07-20T17:27:17.138Z"
+    },
+    {
+      "id": "run_a849c719cab3",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_e60dadb63523",
+      "timestamp": "2026-07-20T17:29:38.063Z"
+    },
+    {
+      "id": "run_49864a0f919b",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_e60dadb63523",
+      "timestamp": "2026-07-20T17:31:34.342Z"
+    },
+    {
+      "id": "run_cde9c6c27572",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_e60dadb63523",
+      "timestamp": "2026-07-20T17:33:14.790Z"
+    },
+    {
+      "id": "run_9873d416dfb4",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_e60dadb63523",
+      "timestamp": "2026-07-20T17:36:06.923Z"
+    },
+    {
+      "id": "run_6b75e01e824f",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_080898a6887c",
+      "timestamp": "2026-07-20T17:42:45.655Z"
+    },
+    {
+      "id": "run_4dbf60737e45",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_719842bb0172",
+      "timestamp": "2026-07-20T18:12:49.025Z"
+    },
+    {
+      "id": "run_4ac3ad5102c7",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_719842bb0172",
+      "timestamp": "2026-07-20T18:32:29.748Z"
+    },
+    {
+      "id": "run_c9b8d2b835b3",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_eca0d8e59094",
+      "timestamp": "2026-07-20T18:34:59.964Z"
+    },
+    {
+      "id": "run_28684bb3a45a",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_53a6d355a84b",
+      "timestamp": "2026-07-25T15:26:59.651Z"
+    },
+    {
+      "id": "run_fac42be67a79",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_53a6d355a84b",
+      "timestamp": "2026-07-25T15:42:42.407Z"
+    },
+    {
+      "id": "run_fb9dba38a349",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_53a6d355a84b",
+      "timestamp": "2026-07-25T15:46:48.353Z"
+    },
+    {
+      "id": "run_e4f29d1809cf",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_1e7f6faab8bd",
+      "timestamp": "2026-07-25T15:49:37.385Z"
+    },
+    {
+      "id": "run_2918899215fe",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_5365af341b84",
+      "timestamp": "2026-07-25T16:08:48.746Z"
+    },
+    {
+      "id": "run_56817835a607",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_5c36acf61cb5",
+      "timestamp": "2026-07-25T16:09:14.487Z"
+    },
+    {
+      "id": "run_9f5644aaae71",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_080898a6887c",
+      "timestamp": "2026-07-25T16:09:35.824Z"
+    },
+    {
+      "id": "run_d123ba2df99e",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_ebb4fc486814",
+      "timestamp": "2026-07-26T01:12:22.908Z"
+    },
+    {
+      "id": "run_f31dd4c7da7d",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_8c5c2b078029",
+      "timestamp": "2026-07-26T01:14:48.769Z"
+    },
+    {
+      "id": "run_c21bd8872012",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_d89e8c544a92",
+      "timestamp": "2026-07-26T01:16:58.722Z"
+    },
+    {
+      "id": "run_ababf93489c6",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_14af6935f209",
+      "timestamp": "2026-07-26T01:18:11.338Z"
+    },
+    {
+      "id": "run_f5412b713a3c",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_14af6935f209",
+      "timestamp": "2026-07-26T01:19:39.062Z"
+    },
+    {
+      "id": "run_d88d1730405e",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_4afc8e5b973c",
+      "timestamp": "2026-07-26T01:22:44.542Z"
+    },
+    {
+      "id": "run_bdf46075486e",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_8c5c2b078029",
+      "timestamp": "2026-07-26T01:23:57.149Z"
+    },
+    {
+      "id": "run_894dc2a77bf9",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_8c5c2b078029",
+      "timestamp": "2026-07-26T01:24:21.986Z"
+    },
+    {
+      "id": "run_e891b3a43c07",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_8c5c2b078029",
+      "timestamp": "2026-07-26T01:24:46.532Z"
+    },
+    {
+      "id": "run_d0c056728c12",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_8c5c2b078029",
+      "timestamp": "2026-07-26T01:27:20.740Z"
+    },
+    {
+      "id": "run_da0c1f8d5901",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_8c5c2b078029",
+      "timestamp": "2026-07-26T01:29:44.302Z"
+    },
+    {
+      "id": "run_b31ab7a88443",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_8c5c2b078029",
+      "timestamp": "2026-07-26T01:30:06.887Z"
+    },
+    {
+      "id": "run_7ff9d980092e",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_a3d4ec863073",
+      "timestamp": "2026-07-26T01:48:19.406Z"
+    },
+    {
+      "id": "run_2a7380b08506",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_f21ac7fe9428",
+      "timestamp": "2026-07-26T01:52:30.599Z"
+    },
+    {
+      "id": "run_d6474fe6c354",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_f21ac7fe9428",
+      "timestamp": "2026-07-26T01:52:43.757Z"
     }
   ],
   "transactions": [
