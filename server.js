@@ -364,6 +364,10 @@ async function runFlow(steps, params) {
   });
 
   const page = await context.newPage();
+  
+  // Abort ad trackers and heavy media scripts to prevent hangs
+  await page.route('**/*{doubleclick,google-analytics,googlesyndication,adservice,scorecardresearch}*', route => route.abort());
+  
   const results = {};
   
   try {
@@ -379,14 +383,10 @@ async function runFlow(steps, params) {
         case 'navigate':
           console.log(`[Replayer] Navigating to: ${step.url}`);
           try {
-            await page.goto(step.url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+            await page.goto(step.url, { waitUntil: 'commit', timeout: 20000 });
+            await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
           } catch (gotoErr) {
-            if (gotoErr.message.includes('ERR_HTTP2') || gotoErr.message.includes('net::ERR_')) {
-              console.warn(`[Replayer] Retrying navigation for ${step.url} with commit fallback...`);
-              await page.goto(step.url, { waitUntil: 'commit', timeout: 25000 }).catch(() => {});
-            } else {
-              throw gotoErr;
-            }
+            console.warn(`[Replayer] Navigation warning for ${step.url}:`, gotoErr.message);
           }
           break;
         case 'click':
@@ -931,17 +931,14 @@ app.post('/api/testing-ground/extract', requireAuth, async (req, res) => {
         timezoneId: 'America/New_York'
       });
       const page = await context.newPage();
+      await page.route('**/*{doubleclick,google-analytics,googlesyndication,adservice,scorecardresearch}*', route => route.abort());
       
       try {
         try {
-          await page.goto(content, { waitUntil: 'domcontentloaded', timeout: 25000 });
+          await page.goto(content, { waitUntil: 'commit', timeout: 20000 });
+          await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
         } catch (gotoErr) {
-          if (gotoErr.message.includes('ERR_HTTP2') || gotoErr.message.includes('net::ERR_')) {
-            console.warn(`[Testing Ground] Retrying navigation for ${content} with commit fallback...`);
-            await page.goto(content, { waitUntil: 'commit', timeout: 25000 }).catch(() => {});
-          } else {
-            throw gotoErr;
-          }
+          console.warn(`[Testing Ground] Navigation warning for ${content}:`, gotoErr.message);
         }
         textToExtract = await page.locator('body').innerText();
       } finally {
