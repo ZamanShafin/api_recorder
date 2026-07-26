@@ -416,7 +416,15 @@ async function runFlow(steps, params) {
           break;
         case 'extract_llm':
           console.log(`[Replayer] Extracting structured data using LLM: "${step.prompt}"`);
-          const bodyText = await page.locator('body').innerText();
+          
+          // Poll body innerText to ensure dynamic JS components (IMDb, React, Vue) finish rendering
+          let bodyText = '';
+          for (let attempt = 0; attempt < 6; attempt++) {
+            bodyText = (await page.locator('body').innerText()).trim();
+            if (bodyText.length > 200) break;
+            await page.waitForTimeout(1000);
+          }
+          
           try {
             const extractedData = await runLlmExtraction(bodyText, step.prompt);
             results[step.label] = extractedData;
