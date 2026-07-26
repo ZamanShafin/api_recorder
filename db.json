@@ -917,7 +917,7 @@
       "steps": [
         {
           "action": "navigate",
-          "url": "https://waltonbd.com/index.php?route=product/search&search=water%20heater"
+          "url": "https://waltonbd.com/appliances/water-heater-geyser"
         },
         {
           "action": "extract_llm",
@@ -944,6 +944,51 @@
       "isPublic": true,
       "priceBDT": 0,
       "createdAt": "2026-07-26T04:12:00.000Z"
+    },
+    {
+      "id": "api_3f92b05c1450",
+      "name": "Walton Product Search API",
+      "description": "An API to programmatically search for products on the Walton Bangladesh website and extract relevant search results.",
+      "analysis": "The automation navigates to the Walton website, executes a pre-filtered product search query for 'Water Heater', and extracts the resulting product list using LLM-based parsing.",
+      "clarifications": [
+        "Should the search parameters 'description' (set to true) be configurable or kept as a constant?",
+        "Are there specific pagination requirements if the search results return multiple pages?",
+        "Consider adding a validation step to handle cases where the search returns no results."
+      ],
+      "steps": [
+        {
+          "action": "navigate",
+          "url": "https://waltonbd.com/"
+        },
+        {
+          "action": "navigate",
+          "url": "https://waltonbd.com/index.php?route=product/search&search=Water%20Heater&description=true"
+        },
+        {
+          "action": "extract_llm",
+          "label": "extracted_list",
+          "prompt": "Search Query"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "search_query",
+          "stepIndex": 1,
+          "defaultValue": "Water Heater",
+          "description": "The product keyword used to filter the website's search results."
+        }
+      ],
+      "outputs": [
+        {
+          "label": "extracted_list",
+          "stepIndex": 2,
+          "description": "A list of products extracted from the search results page based on the search query."
+        }
+      ],
+      "userId": "system",
+      "isPublic": true,
+      "priceBDT": 1000,
+      "createdAt": "2026-07-26T04:14:48.543Z"
     }
   ],
   "users": [
@@ -1175,6 +1220,12 @@
       "userId": "usr_5cc37dd6a113",
       "apiId": "api_f21ac7fe9428",
       "timestamp": "2026-07-26T01:52:43.757Z"
+    },
+    {
+      "id": "run_2c958ee584a7",
+      "userId": "usr_5cc37dd6a113",
+      "apiId": "api_3f92b05c1450",
+      "timestamp": "2026-07-26T04:15:09.339Z"
     }
   ],
   "transactions": [
