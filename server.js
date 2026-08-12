@@ -1180,7 +1180,7 @@ Return ONLY a valid JSON object matching this exact schema:
   "spokenFeedback": "Friendly 1-sentence confirmation message to speak back via Text-to-Speech"
 }`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent`;
     
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
