@@ -1133,6 +1133,105 @@ Instructions & Rules:
   }
 });
 
+// --- VOICE AUDIO TRANSCRIBER & PARSER ROUTE ---
+app.post('/api/voice/transcribe-audio', async (req, res) => {
+  const { audioBase64, mimeType } = req.body;
+  if (!audioBase64) {
+    return res.status(400).json({ success: false, error: 'No audio recording data provided.' });
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    return res.status(500).json({ success: false, error: 'GEMINI_API_KEY environment variable is missing.' });
+  }
+
+  console.log(`[Voice Studio] Transcribing real recorded audio with Gemini AI...`);
+
+  try {
+    const aiPrompt = `Listen to the recorded audio carefully. Transcribe what the user spoke word-for-word into the "transcript" field, and convert their spoken thought into a structured API definition.
+
+Target domain rules:
+1. If the user mentions Walton BD, refrigerator, water heater, AC, TV, or electronics in Bangladesh:
+   - Target URL format MUST be: "https://waltonbd.com/index.php?route=product/search&search=KEYWORD&description=true"
+   - Parameter name: "search_query", defaultValue: matching keyword (e.g. "Water Heater", "Glass Door Refrigerator").
+2. If the user mentions Nasdaq, stocks, AAPL, TSLA:
+   - Target URL: "https://www.nasdaq.com/market-activity/stocks/aapl"
+   - Parameter name: "ticker", defaultValue: "AAPL"
+3. If the user mentions IMDb, movies, top TV shows:
+   - Target URL: "https://www.imdb.com/chart/top/"
+   - Parameter name: "chart_type", defaultValue: "top"
+4. For any other site or REST API in the world: infer the exact working target URL, method, and parameters.
+
+Return ONLY a valid JSON object matching this exact schema:
+{
+  "transcript": "Exact transcribed text spoken by the user in the audio recording",
+  "name": "Concise API Name",
+  "description": "Comprehensive description of what this API does",
+  "apiCategory": "REST_HTTP" | "BROWSER_AUTOMATION",
+  "httpMethod": "GET" | "POST" | "PUT" | "DELETE",
+  "targetUrl": "Full working target endpoint or webpage URL",
+  "headers": { "Accept": "application/json", "Content-Type": "application/json" },
+  "parameter": {
+    "name": "param_name",
+    "defaultValue": "default value",
+    "description": "Parameter keyword or query filter description"
+  },
+  "extractionPrompt": "Detailed data extraction or response filtering instructions",
+  "spokenFeedback": "Friendly 1-sentence confirmation message to speak back via Text-to-Speech"
+}`;
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+    
+    const geminiRes = await fetch(geminiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: aiPrompt },
+              {
+                inline_data: {
+                  mime_type: mimeType || 'audio/webm',
+                  data: audioBase64
+                }
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      throw new Error(`Gemini Audio API returned status ${geminiRes.status}: ${errText}`);
+    }
+
+    const aiData = await geminiRes.json();
+    let rawText = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Gemini did not return a valid JSON object for audio transcription.');
+    }
+    
+    const parsedSchema = JSON.parse(jsonMatch[0]);
+    res.json({
+      success: true,
+      data: parsedSchema
+    });
+  } catch (err) {
+    console.error("[Voice Audio Transcriber Error]:", err.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to transcribe audio with AI: ' + err.message
+    });
+  }
+});
+
 // --- ADMINISTRATIVE CONTROLS ---
 
 // Admin Authorization Middleware

@@ -1720,12 +1720,13 @@ function stopAudioVisualizer() {
 
 let voiceTimerInterval = null;
 let voiceRecordSeconds = 0;
+let mediaRecorderInstance = null;
+let audioChunks = [];
 
-function startVoiceMic() {
+async function startVoiceMic() {
   voiceRecordSeconds = 0;
   isRecordingVoice = true;
-  
-  startAudioVisualizer();
+  audioChunks = [];
 
   const timerDisplay = document.getElementById('voice-timer-display');
   if (timerDisplay) timerDisplay.textContent = '🔴 Recording Voice... (00:00)';
@@ -1738,27 +1739,57 @@ function startVoiceMic() {
     if (timerDisplay) timerDisplay.textContent = `🔴 Recording Voice... (${mins}:${secs})`;
   }, 1000);
 
-  if (speechRecognitionInstance) {
+  if (btnVoiceMic) {
+    btnVoiceMic.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+    btnVoiceMic.style.boxShadow = '0 0 30px rgba(239, 68, 68, 0.8)';
+    btnVoiceMic.style.transform = 'scale(1.1)';
+  }
+  if (voiceMicStatusTitle) voiceMicStatusTitle.textContent = '🎙️ Recording... (Speak Now)';
+  if (voiceMicStatusDesc) voiceMicStatusDesc.textContent = 'Recording your voice thoughts. Click mic again when done to transcribe with AI.';
+
+  await startAudioVisualizer();
+
+  if (mediaStreamInstance) {
     try {
-      speechRecognitionInstance.start();
-    } catch (err) {
-      console.warn('SpeechRecognition start exception:', err);
+      mediaRecorderInstance = new MediaRecorder(mediaStreamInstance);
+      mediaRecorderInstance.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) audioChunks.push(event.data);
+      };
+      mediaRecorderInstance.onstop = async () => {
+        if (audioChunks.length > 0) {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          await transcribeRecordedAudioBlob(audioBlob);
+        }
+      };
+      mediaRecorderInstance.start();
+    } catch (recorderErr) {
+      console.warn('MediaRecorder error:', recorderErr);
     }
+  }
+
+  if (speechRecognitionInstance) {
+    try { speechRecognitionInstance.start(); } catch (err) {}
   }
 }
 
-function stopVoiceMic() {
+async function stopVoiceMic() {
   isRecordingVoice = false;
-  stopAudioVisualizer();
 
   if (voiceTimerInterval) {
     clearInterval(voiceTimerInterval);
     voiceTimerInterval = null;
   }
 
+  if (mediaRecorderInstance && mediaRecorderInstance.state !== 'inactive') {
+    try { mediaRecorderInstance.stop(); } catch (e) {}
+  }
+
+  stopAudioVisualizer();
+
   if (speechRecognitionInstance) {
     try { speechRecognitionInstance.stop(); } catch (e) {}
   }
+
   if (btnVoiceMic) {
     btnVoiceMic.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
     btnVoiceMic.style.boxShadow = '0 10px 25px rgba(16,185,129,0.4)';
@@ -1766,6 +1797,60 @@ function stopVoiceMic() {
   }
   if (voiceMicStatusTitle) voiceMicStatusTitle.textContent = 'Click to Speak Your Thought';
   if (voiceMicStatusDesc) voiceMicStatusDesc.textContent = 'Speak naturally. Gemini 3.1 Flash Lite will interpret your voice and build the target API.';
+}
+
+async function transcribeRecordedAudioBlob(blob) {
+  if (btnParseVoiceThought) {
+    btnParseVoiceThought.disabled = true;
+    btnParseVoiceThought.textContent = '🎙️ Transcribing Voice Audio with Gemini AI...';
+  }
+
+  try {
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = async () => {
+      const base64Data = reader.result.split(',')[1];
+      const res = await fetch('/api/voice/transcribe-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audioBase64: base64Data,
+          mimeType: blob.type || 'audio/webm'
+        })
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to transcribe audio recording');
+
+      currentVoiceSchema = result.data;
+
+      // Populate exact transcribed text spoken by the user!
+      if (voiceTranscriptInput && currentVoiceSchema.transcript) {
+        voiceTranscriptInput.value = currentVoiceSchema.transcript;
+      }
+
+      if (voiceResultEmpty) voiceResultEmpty.style.display = 'none';
+      if (voiceResultContainer) voiceResultContainer.style.display = 'flex';
+
+      if (voiceApiName) voiceApiName.value = currentVoiceSchema.name || 'Voice API';
+      if (voiceApiUrl) voiceApiUrl.value = currentVoiceSchema.targetUrl || '';
+      if (voiceApiParam) voiceApiParam.value = currentVoiceSchema.parameter ? `${currentVoiceSchema.parameter.name} (Default: "${currentVoiceSchema.parameter.defaultValue}")` : 'None';
+      if (voiceApiPrompt) voiceApiPrompt.value = currentVoiceSchema.extractionPrompt || '';
+
+      if ('speechSynthesis' in window && currentVoiceSchema.spokenFeedback) {
+        const utterance = new SpeechSynthesisUtterance(currentVoiceSchema.spokenFeedback);
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    };
+  } catch (err) {
+    console.error('Audio transcription error:', err);
+  } finally {
+    if (btnParseVoiceThought) {
+      btnParseVoiceThought.disabled = false;
+      btnParseVoiceThought.textContent = '✨ Generate API from Thought';
+    }
+  }
 }
 
 if (btnVoiceMic) {
