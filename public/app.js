@@ -1620,18 +1620,12 @@ if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
   };
 
   speechRecognitionInstance.onresult = (event) => {
-    let interim = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcriptPart = event.results[i][0].transcript;
-      if (event.results[i].isFinal) {
-        finalTranscript += transcriptPart + ' ';
-      } else {
-        interim += transcriptPart;
-      }
+    let text = '';
+    for (let i = 0; i < event.results.length; i++) {
+      text += event.results[i][0].transcript;
     }
-    const combined = (finalTranscript + interim).trim();
-    if (voiceTranscriptInput && combined) {
-      voiceTranscriptInput.value = combined;
+    if (voiceTranscriptInput && text.trim()) {
+      voiceTranscriptInput.value = text.trim();
     }
   };
 
