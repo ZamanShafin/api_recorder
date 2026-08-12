@@ -548,10 +548,10 @@
               Speak naturally. Gemini 3.1 Flash Lite will interpret your voice and build the target API workflow.
             </p>
 
-            <!-- Audio Meter Visualizer -->
-            <div id="voice-audio-meter-container" style="width: 100%; max-width: 320px; margin-bottom: 16px; display: none; text-align: center;">
-              <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">
-                <span>Mic Sound Level</span>
+            <!-- Audio Recording Timer & Level Visualizer -->
+            <div id="voice-audio-meter-container" style="width: 100%; max-width: 340px; margin-bottom: 16px; display: none; text-align: center; background: rgba(16,185,129,0.06); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(16,185,129,0.2);">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: #10b981; margin-bottom: 6px;">
+                <span id="voice-timer-display">🔴 Recording Voice... (00:00)</span>
                 <span id="voice-audio-level-text">0%</span>
               </div>
               <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
@@ -561,10 +561,13 @@
 
             <!-- Real-time Spoken Text Area -->
             <div style="width: 100%; text-align: left; margin-bottom: 20px;">
-              <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; display: block; margin-bottom: 6px;">
-                Spoken Thought Transcript
-              </label>
-              <textarea id="voice-transcript-input" rows="3" placeholder="Click the microphone and start speaking, e.g. 'Create an API for Walton water heaters showing model name, price in BDT, and stock status'..." style="width: 100%; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 13px; resize: vertical; box-sizing: border-box;"></textarea>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">
+                  Spoken Thought Transcript
+                </label>
+                <span style="font-size: 11px; color: var(--primary);">Voice / Text Enabled</span>
+              </div>
+              <textarea id="voice-transcript-input" rows="3" placeholder="Click the microphone and start speaking, or type your thought here, e.g. 'Create an API for Walton water heaters showing model name, price in BDT, and stock status'..." style="width: 100%; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 13px; resize: vertical; box-sizing: border-box;"></textarea>
             </div>
 
             <div style="display: flex; gap: 12px; width: 100%;">
@@ -579,19 +582,22 @@
             <!-- Preset Voice Inspiration Prompts -->
             <div style="margin-top: 24px; width: 100%; text-align: left; border-top: 1px solid var(--border); padding-top: 16px;">
               <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; display: block; margin-bottom: 10px;">
-                💡 Try Speaking Any World API Thought
+                💡 1-Click Voice Thought Templates
               </span>
               <div style="display: flex; flex-direction: column; gap: 8px;">
-                <button class="voice-preset-chip" data-thought="Create a Walton BD refrigerator API with glass door models and prices in BDT" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--text-muted); font-size: 12px; text-align: left; cursor: pointer; transition: all 0.2s;">
+                <button class="voice-preset-chip" data-thought="Create an API for Walton water heaters showing model name, price in BDT, and stock status" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--text); font-size: 12px; text-align: left; cursor: pointer; transition: all 0.2s;">
+                  💧 🎙️ "Create an API for Walton water heaters showing model name, price in BDT, and stock status"
+                </button>
+                <button class="voice-preset-chip" data-thought="Create a Walton BD refrigerator API with glass door models and prices in BDT" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--text); font-size: 12px; text-align: left; cursor: pointer; transition: all 0.2s;">
                   🛍️ 🎙️ "Create a Walton BD refrigerator API with glass door models and prices in BDT"
                 </button>
-                <button class="voice-preset-chip" data-thought="Call Open-Meteo REST API to get current weather in Tokyo with temperature and wind speed" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--text-muted); font-size: 12px; text-align: left; cursor: pointer; transition: all 0.2s;">
+                <button class="voice-preset-chip" data-thought="Call Open-Meteo REST API to get current weather in Tokyo with temperature and wind speed" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--text); font-size: 12px; text-align: left; cursor: pointer; transition: all 0.2s;">
                   🌤️ 🎙️ "Call Weather REST API to get current temperature in Tokyo"
                 </button>
-                <button class="voice-preset-chip" data-thought="Call GitHub REST API to get top trending repositories for Python with star counts" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--text-muted); font-size: 12px; text-align: left; cursor: pointer; transition: all 0.2s;">
+                <button class="voice-preset-chip" data-thought="Call GitHub REST API to get top trending repositories for Python with star counts" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--text); font-size: 12px; text-align: left; cursor: pointer; transition: all 0.2s;">
                   💻 🎙️ "Call GitHub REST API to get top trending Python repositories"
                 </button>
-                <button class="voice-preset-chip" data-thought="Extract Apple stock price from Nasdaq with percentage change and market cap" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--text-muted); font-size: 12px; text-align: left; cursor: pointer; transition: all 0.2s;">
+                <button class="voice-preset-chip" data-thought="Extract Apple stock price from Nasdaq with percentage change and market cap" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--text); font-size: 12px; text-align: left; cursor: pointer; transition: all 0.2s;">
                   📈 🎙️ "Extract Apple stock price from Nasdaq with percentage change"
                 </button>
               </div>

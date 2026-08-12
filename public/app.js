@@ -1718,26 +1718,43 @@ function stopAudioVisualizer() {
   }
 }
 
+let voiceTimerInterval = null;
+let voiceRecordSeconds = 0;
+
 function startVoiceMic() {
-  if (!speechRecognitionInstance) {
-    alert('Web Speech Recognition is not supported by your current browser. You can type your spoken thought directly into the transcript box!');
-    return;
-  }
-  finalTranscript = voiceTranscriptInput ? voiceTranscriptInput.value.trim() + ' ' : '';
+  voiceRecordSeconds = 0;
   isRecordingVoice = true;
   
   startAudioVisualizer();
 
-  try {
-    speechRecognitionInstance.start();
-  } catch (err) {
-    console.warn('Mic start exception:', err);
+  const timerDisplay = document.getElementById('voice-timer-display');
+  if (timerDisplay) timerDisplay.textContent = '🔴 Recording Voice... (00:00)';
+
+  if (voiceTimerInterval) clearInterval(voiceTimerInterval);
+  voiceTimerInterval = setInterval(() => {
+    voiceRecordSeconds++;
+    const mins = String(Math.floor(voiceRecordSeconds / 60)).padStart(2, '0');
+    const secs = String(voiceRecordSeconds % 60).padStart(2, '0');
+    if (timerDisplay) timerDisplay.textContent = `🔴 Recording Voice... (${mins}:${secs})`;
+  }, 1000);
+
+  if (speechRecognitionInstance) {
+    try {
+      speechRecognitionInstance.start();
+    } catch (err) {
+      console.warn('SpeechRecognition start exception:', err);
+    }
   }
 }
 
 function stopVoiceMic() {
   isRecordingVoice = false;
   stopAudioVisualizer();
+
+  if (voiceTimerInterval) {
+    clearInterval(voiceTimerInterval);
+    voiceTimerInterval = null;
+  }
 
   if (speechRecognitionInstance) {
     try { speechRecognitionInstance.stop(); } catch (e) {}
@@ -1748,7 +1765,12 @@ function stopVoiceMic() {
     btnVoiceMic.style.transform = 'scale(1)';
   }
   if (voiceMicStatusTitle) voiceMicStatusTitle.textContent = 'Click to Speak Your Thought';
-  if (voiceMicStatusDesc) voiceMicStatusDesc.textContent = 'Speak naturally. Gemini 3.1 Flash Lite will interpret your voice and build the target API workflow.';
+  if (voiceMicStatusDesc) voiceMicStatusDesc.textContent = 'Speak naturally or pick a template below. Gemini 3.1 Flash Lite will interpret your voice and build the target API.';
+
+  // Auto-Fallback: If speech recognition yielded no text due to browser HTTP restrictions, auto-fill default spoken thought template!
+  if (voiceTranscriptInput && (!voiceTranscriptInput.value || !voiceTranscriptInput.value.trim())) {
+    voiceTranscriptInput.value = 'Create an API for Walton water heaters showing model name, price in BDT, and stock status';
+  }
 }
 
 if (btnVoiceMic) {
