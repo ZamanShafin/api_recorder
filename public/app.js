@@ -1599,6 +1599,8 @@ document.querySelectorAll('.voice-preset-chip').forEach(chip => {
 });
 
 // Setup Web Speech Recognition API if supported by browser
+let finalTranscript = '';
+
 if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
   const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
   speechRecognitionInstance = new SpeechRecognitionClass();
@@ -1611,36 +1613,59 @@ if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
     if (btnVoiceMic) {
       btnVoiceMic.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
       btnVoiceMic.style.boxShadow = '0 0 30px rgba(239, 68, 68, 0.8)';
+      btnVoiceMic.style.transform = 'scale(1.1)';
     }
-    if (voiceMicStatusTitle) voiceMicStatusTitle.textContent = '🎙️ Listening to Your Voice...';
-    if (voiceMicStatusDesc) voiceMicStatusDesc.textContent = 'Speak your thought naturally. Click mic again when done.';
+    if (voiceMicStatusTitle) voiceMicStatusTitle.textContent = '🎙️ Listening... (Speak Now)';
+    if (voiceMicStatusDesc) voiceMicStatusDesc.textContent = 'Recording your voice thoughts continuously. Click mic again when finished.';
   };
 
   speechRecognitionInstance.onresult = (event) => {
-    let transcript = '';
+    let interim = '';
     for (let i = event.resultIndex; i < event.results.length; i++) {
-      transcript += event.results[i][0].transcript;
+      const transcriptPart = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalTranscript += transcriptPart + ' ';
+      } else {
+        interim += transcriptPart;
+      }
     }
-    if (voiceTranscriptInput) {
-      voiceTranscriptInput.value = transcript;
+    const combined = (finalTranscript + interim).trim();
+    if (voiceTranscriptInput && combined) {
+      voiceTranscriptInput.value = combined;
     }
   };
 
   speechRecognitionInstance.onerror = (event) => {
     console.warn('Speech recognition error:', event.error);
-    stopVoiceMic();
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      alert('Microphone access was blocked. Please click the camera/mic icon in your browser address bar to allow microphone permissions!');
+      stopVoiceMic();
+    }
+    // Ignore no-speech or network glitches, onend will auto-restart if still recording
   };
 
   speechRecognitionInstance.onend = () => {
-    stopVoiceMic();
+    // If the user hasn't explicitly clicked stop, auto-restart speech recognition for continuous listening!
+    if (isRecordingVoice) {
+      try {
+        speechRecognitionInstance.start();
+      } catch (restartErr) {
+        console.warn('Speech restart note:', restartErr);
+        stopVoiceMic();
+      }
+    } else {
+      stopVoiceMic();
+    }
   };
 }
 
 function startVoiceMic() {
   if (!speechRecognitionInstance) {
-    alert('Web Speech Recognition is not supported by your browser. You can type your spoken thought directly into the transcript box!');
+    alert('Web Speech Recognition is not supported by your current browser. You can type your spoken thought directly into the transcript box!');
     return;
   }
+  finalTranscript = voiceTranscriptInput ? voiceTranscriptInput.value.trim() + ' ' : '';
+  isRecordingVoice = true;
   try {
     speechRecognitionInstance.start();
   } catch (err) {
@@ -1656,6 +1681,7 @@ function stopVoiceMic() {
   if (btnVoiceMic) {
     btnVoiceMic.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
     btnVoiceMic.style.boxShadow = '0 10px 25px rgba(16,185,129,0.4)';
+    btnVoiceMic.style.transform = 'scale(1)';
   }
   if (voiceMicStatusTitle) voiceMicStatusTitle.textContent = 'Click to Speak Your Thought';
   if (voiceMicStatusDesc) voiceMicStatusDesc.textContent = 'Speak naturally. Gemini 3.1 Flash Lite will interpret your voice and build the target API workflow.';
