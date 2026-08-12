@@ -1081,15 +1081,22 @@ Instructions & Rules:
   "spokenFeedback": "Friendly 1-sentence confirmation message to speak back via Text-to-Speech"
 }`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || !apiKey.trim()) {
+      return res.status(500).json({ success: false, error: 'GEMINI_API_KEY environment variable is missing.' });
+    }
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent`;
     
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      },
       body: JSON.stringify({
         contents: [
           {
-            role: 'user',
             parts: [
               { text: aiSystemPrompt },
               { text: `User Spoken Thought: "${spokenThought.trim()}"` }
@@ -1099,19 +1106,26 @@ Instructions & Rules:
       })
     });
 
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      throw new Error(`Gemini API returned status ${geminiRes.status}: ${errText}`);
+    }
+
     const aiData = await geminiRes.json();
     let rawText = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
-    // Clean JSON markdown fences
-    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Gemini did not return a valid JSON object in the response.');
+    }
     
-    const parsedSchema = JSON.parse(rawText);
+    const parsedSchema = JSON.parse(jsonMatch[0]);
     res.json({
       success: true,
       data: parsedSchema
     });
   } catch (err) {
-    console.error("[Voice Thought Parser Error]:", err);
+    console.error("[Voice Thought Parser Error]:", err.message);
     res.status(500).json({
       success: false,
       error: 'Failed to parse voice thought with AI. ' + err.message
