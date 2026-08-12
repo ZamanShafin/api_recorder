@@ -388,6 +388,48 @@ async function runFlow(steps, params) {
       }
       
       switch (step.action) {
+        case 'http_request':
+        case 'api_call':
+        case 'rest_api':
+          let httpUrl = step.url;
+          let httpMethod = (step.method || 'GET').toUpperCase();
+          let httpHeaders = step.headers || { 'Accept': 'application/json', 'Content-Type': 'application/json' };
+          let httpBody = step.body ? (typeof step.body === 'string' ? step.body : JSON.stringify(step.body)) : null;
+
+          // Substitute parameters dynamically
+          if (paramMatch && value) {
+            const defVal = paramMatch.defaultValue;
+            if (defVal && httpUrl.includes(defVal)) {
+              httpUrl = httpUrl.replace(defVal, encodeURIComponent(value));
+            } else if (httpUrl.includes('=')) {
+              httpUrl = httpUrl.replace(/=([^&]+)/, `=${encodeURIComponent(value)}`);
+            } else if (httpBody && defVal && httpBody.includes(defVal)) {
+              httpBody = httpBody.replace(new RegExp(defVal, 'g'), value);
+            }
+          }
+
+          console.log(`[Universal API Gateway] Executing REST API call: ${httpMethod} ${httpUrl}`);
+          try {
+            const httpRes = await fetch(httpUrl, {
+              method: httpMethod,
+              headers: httpHeaders,
+              body: (httpMethod !== 'GET' && httpMethod !== 'HEAD') ? httpBody : undefined
+            });
+
+            const httpContentType = httpRes.headers.get('content-type') || '';
+            let httpData;
+            if (httpContentType.includes('application/json')) {
+              httpData = await httpRes.json();
+            } else {
+              httpData = await httpRes.text();
+            }
+
+            results[step.label || 'api_response'] = httpData;
+          } catch (httpErr) {
+            console.error(`[Universal API Gateway Error] ${httpUrl}:`, httpErr.message);
+            results[step.label || 'api_response'] = { error: httpErr.message, success: false };
+          }
+          break;
         case 'navigate':
           let targetUrl = step.url;
           if (paramMatch && value) {
@@ -1011,32 +1053,32 @@ app.post('/api/voice/parse-thought', async (req, res) => {
   console.log(`[Voice Studio] Parsing spoken thought: "${spokenThought.trim()}"`);
 
   try {
-    const aiSystemPrompt = `You are AetherFlow Voice Thought Parser AI. Analyze the user's spoken thought and convert it into a structured web automation API definition.
+    const aiSystemPrompt = `You are AetherFlow Universal Voice-to-API Engine AI. Analyze the user's spoken thought and convert it into a structured, production-ready API definition for ANY API or website in the world.
 
-Target domain rules:
-1. If the user mentions Walton BD, refrigerator, water heater, AC, TV, or electronics in Bangladesh:
-   - Target URL format MUST be: "https://waltonbd.com/index.php?route=product/search&search=KEYWORD&description=true"
-   - Parameter name: "search_query", defaultValue: matching keyword (e.g. "Water Heater", "Glass Door Refrigerator").
-2. If the user mentions Nasdaq, stocks, AAPL, TSLA:
-   - Target URL: "https://www.nasdaq.com/market-activity/stocks/aapl"
-   - Parameter name: "ticker", defaultValue: "AAPL"
-3. If the user mentions IMDb, movies, top TV shows:
-   - Target URL: "https://www.imdb.com/chart/top/"
-   - Parameter name: "chart_type", defaultValue: "top"
-4. For general web sites: infer a realistic target search or data URL.
+Instructions & Rules:
+1. Support ALL types of APIs in the world (REST HTTP APIs, Webhooks, Data Feeds, Search APIs, Web Automation scrapers, Finance/Crypto APIs, Weather, E-Commerce, Social, Movies, Govt/Open Data).
+2. Categorize the request:
+   - For Walton BD: "https://waltonbd.com/index.php?route=product/search&search=KEYWORD&description=true", param: "search_query"
+   - For IMDb: "https://www.imdb.com/chart/top/", param: "chart_type"
+   - For Nasdaq: "https://www.nasdaq.com/market-activity/stocks/aapl", param: "ticker"
+   - For Public REST APIs (e.g. GitHub, Weather, Currency rates, CoinGecko, JSONPlaceholder, OpenData): use the direct REST endpoint.
+   - For any other website or API requested: infer the exact working target URL, method, and parameters.
 
-Return ONLY a valid JSON object matching this exact structure (no markdown formatting, no code blocks):
+3. Return ONLY a valid JSON object matching this exact schema (no markdown, no code fences):
 {
   "name": "Concise API Name",
-  "description": "Short description of what the API extracts",
-  "targetUrl": "Full working target URL",
+  "description": "Comprehensive description of what this API does",
+  "apiCategory": "REST_HTTP" | "BROWSER_AUTOMATION",
+  "httpMethod": "GET" | "POST" | "PUT" | "DELETE",
+  "targetUrl": "Full working target endpoint or webpage URL",
+  "headers": { "Accept": "application/json", "Content-Type": "application/json" },
   "parameter": {
-    "name": "search_query",
-    "defaultValue": "Water Heater",
-    "description": "Parameter keyword used for query filtering"
+    "name": "param_name",
+    "defaultValue": "default value",
+    "description": "Parameter keyword or query filter description"
   },
-  "extractionPrompt": "Detailed extraction instructions for Gemini AI replayer",
-  "spokenFeedback": "Friendly 1-sentence confirmation message to speak back to the user via Text-to-Speech"
+  "extractionPrompt": "Detailed data extraction or response filtering instructions",
+  "spokenFeedback": "Friendly 1-sentence confirmation message to speak back via Text-to-Speech"
 }`;
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
