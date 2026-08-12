@@ -1765,12 +1765,7 @@ function stopVoiceMic() {
     btnVoiceMic.style.transform = 'scale(1)';
   }
   if (voiceMicStatusTitle) voiceMicStatusTitle.textContent = 'Click to Speak Your Thought';
-  if (voiceMicStatusDesc) voiceMicStatusDesc.textContent = 'Speak naturally or pick a template below. Gemini 3.1 Flash Lite will interpret your voice and build the target API.';
-
-  // Auto-Fallback: If speech recognition yielded no text due to browser HTTP restrictions, auto-fill default spoken thought template!
-  if (voiceTranscriptInput && (!voiceTranscriptInput.value || !voiceTranscriptInput.value.trim())) {
-    voiceTranscriptInput.value = 'Create an API for Walton water heaters showing model name, price in BDT, and stock status';
-  }
+  if (voiceMicStatusDesc) voiceMicStatusDesc.textContent = 'Speak naturally. Gemini 3.1 Flash Lite will interpret your voice and build the target API.';
 }
 
 if (btnVoiceMic) {
