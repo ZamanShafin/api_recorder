@@ -1653,6 +1653,71 @@ if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
   };
 }
 
+let mediaStreamInstance = null;
+let audioContextInstance = null;
+let audioAnimFrame = null;
+
+async function startAudioVisualizer() {
+  const meterContainer = document.getElementById('voice-audio-meter-container');
+  const audioBar = document.getElementById('voice-audio-bar');
+  const levelText = document.getElementById('voice-audio-level-text');
+
+  if (meterContainer) meterContainer.style.display = 'block';
+
+  try {
+    mediaStreamInstance = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    audioContextInstance = new AudioContextClass();
+
+    const source = audioContextInstance.createMediaStreamSource(mediaStreamInstance);
+    const analyser = audioContextInstance.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    function updateLevel() {
+      if (!isRecordingVoice) return;
+      analyser.getByteFrequencyData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        sum += dataArray[i];
+      }
+      const average = sum / dataArray.length;
+      const percentage = Math.min(100, Math.round((average / 128) * 100));
+
+      if (audioBar) {
+        audioBar.style.width = `${percentage}%`;
+        audioBar.style.background = percentage > 10 ? '#10b981' : '#f59e0b';
+      }
+      if (levelText) {
+        levelText.textContent = percentage > 10 ? `${percentage}% (Audio Active)` : `${percentage}% (Speak louder)`;
+      }
+
+      audioAnimFrame = requestAnimationFrame(updateLevel);
+    }
+    updateLevel();
+  } catch (micErr) {
+    console.warn('Microphone hardware stream permission error:', micErr);
+    if (levelText) levelText.textContent = 'Mic Permission Blocked';
+  }
+}
+
+function stopAudioVisualizer() {
+  const meterContainer = document.getElementById('voice-audio-meter-container');
+  if (meterContainer) meterContainer.style.display = 'none';
+
+  if (audioAnimFrame) cancelAnimationFrame(audioAnimFrame);
+  if (mediaStreamInstance) {
+    mediaStreamInstance.getTracks().forEach(track => track.stop());
+    mediaStreamInstance = null;
+  }
+  if (audioContextInstance) {
+    try { audioContextInstance.close(); } catch (e) {}
+    audioContextInstance = null;
+  }
+}
+
 function startVoiceMic() {
   if (!speechRecognitionInstance) {
     alert('Web Speech Recognition is not supported by your current browser. You can type your spoken thought directly into the transcript box!');
@@ -1660,6 +1725,9 @@ function startVoiceMic() {
   }
   finalTranscript = voiceTranscriptInput ? voiceTranscriptInput.value.trim() + ' ' : '';
   isRecordingVoice = true;
+  
+  startAudioVisualizer();
+
   try {
     speechRecognitionInstance.start();
   } catch (err) {
@@ -1669,6 +1737,8 @@ function startVoiceMic() {
 
 function stopVoiceMic() {
   isRecordingVoice = false;
+  stopAudioVisualizer();
+
   if (speechRecognitionInstance) {
     try { speechRecognitionInstance.stop(); } catch (e) {}
   }
