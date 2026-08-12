@@ -1001,6 +1001,82 @@ app.post('/api/testing-ground/extract', requireAuth, async (req, res) => {
   }
 });
 
+// --- VOICE-TO-API THOUGHT PARSER ROUTE ---
+app.post('/api/voice/parse-thought', async (req, res) => {
+  const { spokenThought } = req.body;
+  if (!spokenThought || typeof spokenThought !== 'string' || !spokenThought.trim()) {
+    return res.status(400).json({ success: false, error: 'Please provide a valid spoken thought prompt.' });
+  }
+
+  console.log(`[Voice Studio] Parsing spoken thought: "${spokenThought.trim()}"`);
+
+  try {
+    const aiSystemPrompt = `You are AetherFlow Voice Thought Parser AI. Analyze the user's spoken thought and convert it into a structured web automation API definition.
+
+Target domain rules:
+1. If the user mentions Walton BD, refrigerator, water heater, AC, TV, or electronics in Bangladesh:
+   - Target URL format MUST be: "https://waltonbd.com/index.php?route=product/search&search=KEYWORD&description=true"
+   - Parameter name: "search_query", defaultValue: matching keyword (e.g. "Water Heater", "Glass Door Refrigerator").
+2. If the user mentions Nasdaq, stocks, AAPL, TSLA:
+   - Target URL: "https://www.nasdaq.com/market-activity/stocks/aapl"
+   - Parameter name: "ticker", defaultValue: "AAPL"
+3. If the user mentions IMDb, movies, top TV shows:
+   - Target URL: "https://www.imdb.com/chart/top/"
+   - Parameter name: "chart_type", defaultValue: "top"
+4. For general web sites: infer a realistic target search or data URL.
+
+Return ONLY a valid JSON object matching this exact structure (no markdown formatting, no code blocks):
+{
+  "name": "Concise API Name",
+  "description": "Short description of what the API extracts",
+  "targetUrl": "Full working target URL",
+  "parameter": {
+    "name": "search_query",
+    "defaultValue": "Water Heater",
+    "description": "Parameter keyword used for query filtering"
+  },
+  "extractionPrompt": "Detailed extraction instructions for Gemini AI replayer",
+  "spokenFeedback": "Friendly 1-sentence confirmation message to speak back to the user via Text-to-Speech"
+}`;
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    
+    const geminiRes = await fetch(geminiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: aiSystemPrompt },
+              { text: `User Spoken Thought: "${spokenThought.trim()}"` }
+            ]
+          }
+        ]
+      })
+    });
+
+    const aiData = await geminiRes.json();
+    let rawText = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    // Clean JSON markdown fences
+    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    const parsedSchema = JSON.parse(rawText);
+    res.json({
+      success: true,
+      data: parsedSchema
+    });
+  } catch (err) {
+    console.error("[Voice Thought Parser Error]:", err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to parse voice thought with AI. ' + err.message
+    });
+  }
+});
+
 // --- ADMINISTRATIVE CONTROLS ---
 
 // Admin Authorization Middleware

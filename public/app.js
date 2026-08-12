@@ -282,6 +282,11 @@ function switchView(viewName) {
     navBtnTestingGround.classList.toggle('active', viewName === 'testing-ground');
   }
   
+  const navBtnVoice = document.getElementById('nav-btn-voice');
+  if (navBtnVoice) {
+    navBtnVoice.classList.toggle('active', viewName === 'voice');
+  }
+  
   viewApis.style.display = viewName === 'apis' ? 'block' : 'none';
   viewMarketplace.style.display = viewName === 'marketplace' ? 'block' : 'none';
   viewBilling.style.display = viewName === 'billing' ? 'block' : 'none';
@@ -294,6 +299,11 @@ function switchView(viewName) {
   const viewTestingGround = document.getElementById('view-testing-ground');
   if (viewTestingGround) {
     viewTestingGround.style.display = viewName === 'testing-ground' ? 'block' : 'none';
+  }
+  
+  const viewVoice = document.getElementById('view-voice');
+  if (viewVoice) {
+    viewVoice.style.display = viewName === 'voice' ? 'block' : 'none';
   }
   
   myApisSidebarSection.style.display = viewName === 'apis' ? 'flex' : 'none';
@@ -1547,3 +1557,253 @@ if (tgBtnPublishMarketplace) {
     }
   });
 }
+
+// --- VOICE-TO-API STUDIO CONTROLLER ---
+
+let speechRecognitionInstance = null;
+let isRecordingVoice = false;
+let currentVoiceSchema = null;
+
+const navBtnVoice = document.getElementById('nav-btn-voice');
+if (navBtnVoice) {
+  navBtnVoice.addEventListener('click', () => switchView('voice'));
+}
+
+const btnVoiceMic = document.getElementById('btn-voice-mic');
+const voiceMicStatusTitle = document.getElementById('voice-mic-status-title');
+const voiceMicStatusDesc = document.getElementById('voice-mic-status-desc');
+const voiceTranscriptInput = document.getElementById('voice-transcript-input');
+const btnParseVoiceThought = document.getElementById('btn-parse-voice-thought');
+const btnVoiceClear = document.getElementById('btn-voice-clear');
+
+const voiceResultEmpty = document.getElementById('voice-result-empty');
+const voiceResultContainer = document.getElementById('voice-result-container');
+const voiceApiName = document.getElementById('voice-api-name');
+const voiceApiUrl = document.getElementById('voice-api-url');
+const voiceApiParam = document.getElementById('voice-api-param');
+const voiceApiPrompt = document.getElementById('voice-api-prompt');
+const btnTestVoiceApi = document.getElementById('btn-test-voice-api');
+const btnPublishVoiceApi = document.getElementById('btn-publish-voice-api');
+const voiceExecutionOutput = document.getElementById('voice-execution-output');
+const voiceOutputJson = document.getElementById('voice-output-json');
+
+// Preset voice chips
+document.querySelectorAll('.voice-preset-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const thought = chip.getAttribute('data-thought');
+    if (thought && voiceTranscriptInput) {
+      voiceTranscriptInput.value = thought;
+      triggerVoiceThoughtParsing(thought);
+    }
+  });
+});
+
+// Setup Web Speech Recognition API if supported by browser
+if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+  const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+  speechRecognitionInstance = new SpeechRecognitionClass();
+  speechRecognitionInstance.continuous = true;
+  speechRecognitionInstance.interimResults = true;
+  speechRecognitionInstance.lang = 'en-US';
+
+  speechRecognitionInstance.onstart = () => {
+    isRecordingVoice = true;
+    if (btnVoiceMic) {
+      btnVoiceMic.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+      btnVoiceMic.style.boxShadow = '0 0 30px rgba(239, 68, 68, 0.8)';
+    }
+    if (voiceMicStatusTitle) voiceMicStatusTitle.textContent = '🎙️ Listening to Your Voice...';
+    if (voiceMicStatusDesc) voiceMicStatusDesc.textContent = 'Speak your thought naturally. Click mic again when done.';
+  };
+
+  speechRecognitionInstance.onresult = (event) => {
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+    if (voiceTranscriptInput) {
+      voiceTranscriptInput.value = transcript;
+    }
+  };
+
+  speechRecognitionInstance.onerror = (event) => {
+    console.warn('Speech recognition error:', event.error);
+    stopVoiceMic();
+  };
+
+  speechRecognitionInstance.onend = () => {
+    stopVoiceMic();
+  };
+}
+
+function startVoiceMic() {
+  if (!speechRecognitionInstance) {
+    alert('Web Speech Recognition is not supported by your browser. You can type your spoken thought directly into the transcript box!');
+    return;
+  }
+  try {
+    speechRecognitionInstance.start();
+  } catch (err) {
+    console.warn('Mic start exception:', err);
+  }
+}
+
+function stopVoiceMic() {
+  isRecordingVoice = false;
+  if (speechRecognitionInstance) {
+    try { speechRecognitionInstance.stop(); } catch (e) {}
+  }
+  if (btnVoiceMic) {
+    btnVoiceMic.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+    btnVoiceMic.style.boxShadow = '0 10px 25px rgba(16,185,129,0.4)';
+  }
+  if (voiceMicStatusTitle) voiceMicStatusTitle.textContent = 'Click to Speak Your Thought';
+  if (voiceMicStatusDesc) voiceMicStatusDesc.textContent = 'Speak naturally. Gemini 3.1 Flash Lite will interpret your voice and build the target API workflow.';
+}
+
+if (btnVoiceMic) {
+  btnVoiceMic.addEventListener('click', () => {
+    if (isRecordingVoice) {
+      stopVoiceMic();
+    } else {
+      startVoiceMic();
+    }
+  });
+}
+
+if (btnVoiceClear) {
+  btnVoiceClear.addEventListener('click', () => {
+    if (voiceTranscriptInput) voiceTranscriptInput.value = '';
+    if (voiceResultEmpty) voiceResultEmpty.style.display = 'flex';
+    if (voiceResultContainer) voiceResultContainer.style.display = 'none';
+    currentVoiceSchema = null;
+  });
+}
+
+if (btnParseVoiceThought) {
+  btnParseVoiceThought.addEventListener('click', () => {
+    const thought = voiceTranscriptInput ? voiceTranscriptInput.value.trim() : '';
+    if (!thought) {
+      alert('Please speak your thought or type a prompt first!');
+      return;
+    }
+    triggerVoiceThoughtParsing(thought);
+  });
+}
+
+async function triggerVoiceThoughtParsing(thought) {
+  if (btnParseVoiceThought) {
+    btnParseVoiceThought.disabled = true;
+    btnParseVoiceThought.textContent = '✨ Gemini AI Parsing Thought...';
+  }
+
+  try {
+    const res = await fetch('/api/voice/parse-thought', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spokenThought: thought })
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to parse voice thought');
+
+    currentVoiceSchema = result.data;
+
+    if (voiceResultEmpty) voiceResultEmpty.style.display = 'none';
+    if (voiceResultContainer) voiceResultContainer.style.display = 'flex';
+
+    if (voiceApiName) voiceApiName.value = currentVoiceSchema.name || 'Voice API';
+    if (voiceApiUrl) voiceApiUrl.value = currentVoiceSchema.targetUrl || '';
+    if (voiceApiParam) voiceApiParam.value = currentVoiceSchema.parameter ? `${currentVoiceSchema.parameter.name} (Default: "${currentVoiceSchema.parameter.defaultValue}")` : 'None';
+    if (voiceApiPrompt) voiceApiPrompt.value = currentVoiceSchema.extractionPrompt || '';
+
+    // Text-to-Speech audio confirmation if supported
+    if ('speechSynthesis' in window && currentVoiceSchema.spokenFeedback) {
+      const utterance = new SpeechSynthesisUtterance(currentVoiceSchema.spokenFeedback);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  } catch (err) {
+    alert('Voice Thought AI Parsing Error: ' + err.message);
+  } finally {
+    if (btnParseVoiceThought) {
+      btnParseVoiceThought.disabled = false;
+      btnParseVoiceThought.textContent = '✨ Generate API from Thought';
+    }
+  }
+}
+
+// Test Run Live
+if (btnTestVoiceApi) {
+  btnTestVoiceApi.addEventListener('click', async () => {
+    if (!currentVoiceSchema) return;
+    btnTestVoiceApi.disabled = true;
+    btnTestVoiceApi.textContent = '⚡ Running Playwright Replayer...';
+    if (voiceExecutionOutput) voiceExecutionOutput.style.display = 'block';
+    if (voiceOutputJson) voiceOutputJson.textContent = 'Executing Playwright browser automation and extracting dynamic data...';
+
+    try {
+      const res = await fetch('/api/testing-ground/extract', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          content: currentVoiceSchema.targetUrl,
+          contentType: 'url',
+          prompt: currentVoiceSchema.extractionPrompt
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Execution failed');
+
+      if (voiceOutputJson) {
+        voiceOutputJson.textContent = JSON.stringify(data.data, null, 2);
+      }
+    } catch (err) {
+      if (voiceOutputJson) voiceOutputJson.textContent = 'Error: ' + err.message;
+    } finally {
+      btnTestVoiceApi.disabled = false;
+      btnTestVoiceApi.textContent = '⚡ Test Run Live';
+    }
+  });
+}
+
+// Publish Voice API to Marketplace
+if (btnPublishVoiceApi) {
+  btnPublishVoiceApi.addEventListener('click', async () => {
+    if (!currentVoiceSchema) return;
+    if (!currentUser) {
+      showAuthScreen('Log in or Register to publish your Voice API to the Marketplace.');
+      return;
+    }
+
+    const priceStr = prompt('Set subscription price in BDT (Enter 0 for FREE):', '0');
+    if (priceStr === null) return;
+    const priceBDT = Math.max(0, parseInt(priceStr) || 0);
+
+    try {
+      const res = await fetch('/api/apis/create-from-extraction', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: currentVoiceSchema.name,
+          description: currentVoiceSchema.description || `Voice-created API: ${currentVoiceSchema.name}`,
+          targetUrl: currentVoiceSchema.targetUrl,
+          prompt: currentVoiceSchema.extractionPrompt,
+          priceBDT: priceBDT,
+          isPublic: true
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to publish to Marketplace');
+
+      alert('🚀 Your Voice-Created API has been published to the Marketplace!');
+      switchView('marketplace');
+    } catch (err) {
+      alert('Failed to publish Voice API: ' + err.message);
+    }
+  });
+}
+
