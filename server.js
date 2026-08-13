@@ -509,6 +509,38 @@ ${cleanPageText || 'Dynamic API Execution Content'}
   return generateSmartLocalExtraction(pageText, promptText);
 }
 
+function normalizeTargetUrl(url, value) {
+  let u = (url || '').trim();
+  const val = (value || '').trim();
+
+  if (u.includes('ryanscomputers.com') || u.includes('ryans.com')) {
+    const q = val || 'laptop';
+    return `https://www.ryans.com/search?q=${encodeURIComponent(q)}`;
+  }
+
+  if (u.includes('startech.com')) {
+    const q = val || 'laptop';
+    return `https://www.startech.com.bd/product/search?search=${encodeURIComponent(q)}`;
+  }
+
+  if (u.includes('waltonbd.com')) {
+    const q = val || 'Water Heater';
+    return `https://waltonbd.com/index.php?route=product/search&search=${encodeURIComponent(q)}&description=true`;
+  }
+
+  if (u.includes('dsebd.org')) {
+    const q = val || 'SQURPHARMA';
+    return `https://www.dsebd.org/displayCompany.php?name=${encodeURIComponent(q.toUpperCase())}`;
+  }
+
+  if (u.includes('booking.com')) {
+    const q = val || 'Singapore';
+    return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(q)}`;
+  }
+
+  return u;
+}
+
 // --- PLAYWRIGHT RUNNER ---
 
 async function runFlow(steps, params) {
@@ -611,12 +643,10 @@ async function runFlow(steps, params) {
           }
           break;
         case 'navigate':
-          let targetUrl = step.url;
+          let targetUrl = normalizeTargetUrl(step.url, value);
           if (paramMatch && value) {
             const defVal = paramMatch.defaultValue;
-            if (targetUrl.includes('waltonbd.com')) {
-              targetUrl = `https://waltonbd.com/index.php?route=product/search&search=${encodeURIComponent(value)}&description=true`;
-            } else if (defVal && targetUrl.includes(defVal)) {
+            if (defVal && targetUrl.includes(defVal)) {
               targetUrl = targetUrl.replace(defVal, value);
             } else if (targetUrl.includes('=')) {
               targetUrl = targetUrl.replace(/=([^&]+)/, `=${encodeURIComponent(value)}`);
@@ -1193,11 +1223,12 @@ app.post('/api/testing-ground/extract', requireAuth, async (req, res) => {
       await page.route('**/*{doubleclick,google-analytics,googlesyndication,adservice,scorecardresearch}*', route => route.abort());
       
       try {
+        const targetNavUrl = normalizeTargetUrl(content, '');
         try {
-          await page.goto(content, { waitUntil: 'commit', timeout: 20000 });
+          await page.goto(targetNavUrl, { waitUntil: 'commit', timeout: 20000 });
           await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
         } catch (gotoErr) {
-          console.warn(`[Testing Ground] Navigation warning for ${content}:`, gotoErr.message);
+          console.warn(`[Testing Ground] Navigation warning for ${targetNavUrl}:`, gotoErr.message);
         }
         textToExtract = await page.evaluate(() => (document.body ? document.body.innerText : document.documentElement.innerText) || '');
       } finally {
