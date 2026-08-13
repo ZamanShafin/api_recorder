@@ -541,6 +541,38 @@ function normalizeTargetUrl(url, value) {
   return u;
 }
 
+async function bypassCaptchaIfPresent(page) {
+  try {
+    const turnstileIframe = page.frameLocator('iframe[src*="turnstile"], iframe[src*="challenge"], iframe[title*="Turnstile"]');
+    const cfCheckbox = turnstileIframe.locator('input[type="checkbox"], .mark-checkbox, #challenge-stage input');
+    if (await cfCheckbox.count() > 0) {
+      console.log('[Anti-CAPTCHA Engine] Cloudflare Turnstile checkbox detected! Auto-clicking...');
+      await cfCheckbox.first().click({ timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(2000);
+    }
+
+    const recaptchaIframe = page.frameLocator('iframe[title*="recaptcha"], iframe[src*="recaptcha"]');
+    const recaptchaCheckbox = recaptchaIframe.locator('.recaptcha-checkbox-border, #recaptcha-anchor');
+    if (await recaptchaCheckbox.count() > 0) {
+      console.log('[Anti-CAPTCHA Engine] Google reCAPTCHA v2 detected! Auto-clicking...');
+      await recaptchaCheckbox.first().click({ timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(2000);
+    }
+
+    const hasCloudflareChallenge = await page.evaluate(() => {
+      const text = document.body ? document.body.innerText : '';
+      return text.includes('Just a moment...') || text.includes('Verify you are human') || text.includes('Checking your browser');
+    }).catch(() => false);
+
+    if (hasCloudflareChallenge) {
+      console.log('[Anti-CAPTCHA Engine] Cloudflare JS Challenge active. Waiting for browser stealth pass...');
+      await page.waitForTimeout(4500);
+    }
+  } catch (captchaErr) {
+    console.warn('[Anti-CAPTCHA Engine Note]:', captchaErr.message);
+  }
+}
+
 // --- PLAYWRIGHT RUNNER ---
 
 async function runFlow(steps, params) {
@@ -569,12 +601,19 @@ async function runFlow(steps, params) {
     }
   });
   
-  // Disable navigator.webdriver & stealth mocks
+  // Stealth Evasion & WebGL Hardware Spoofing
   await context.addInitScript(() => {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
     Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
     Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
-    window.chrome = { runtime: {} };
+    window.chrome = { runtime: {}, loadTimes: function() {}, csi: function() {}, app: {} };
+    
+    const getParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(parameter) {
+      if (parameter === 37445) return 'Google Inc. (NVIDIA)';
+      if (parameter === 37446) return 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3080 Direct3D11 vs_5_0 ps_5_0, D3D11)';
+      return getParameter.apply(this, arguments);
+    };
   });
 
   const page = await context.newPage();
@@ -658,6 +697,7 @@ async function runFlow(steps, params) {
           try {
             await page.goto(targetUrl, { waitUntil: 'commit', timeout: 20000 });
             await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
+            await bypassCaptchaIfPresent(page);
           } catch (gotoErr) {
             console.warn(`[Replayer] Navigation warning for ${targetUrl}:`, gotoErr.message);
           }
@@ -1227,6 +1267,7 @@ app.post('/api/testing-ground/extract', requireAuth, async (req, res) => {
         try {
           await page.goto(targetNavUrl, { waitUntil: 'commit', timeout: 20000 });
           await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
+          await bypassCaptchaIfPresent(page);
         } catch (gotoErr) {
           console.warn(`[Testing Ground] Navigation warning for ${targetNavUrl}:`, gotoErr.message);
         }
