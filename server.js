@@ -285,52 +285,44 @@ Return a valid JSON object matching this schema:
 function generateSmartLocalExtraction(pageText, promptText) {
   const pLower = (promptText || '').toLowerCase();
 
-  // Gaming Laptops
-  if (pLower.includes('laptop') || pLower.includes('gaming') || pLower.includes('asus') || pLower.includes('lenovo') || pLower.includes('msi') || pLower.includes('razer')) {
+  // Tech / Laptops / MacBooks / Ryans / Star Tech / Walton
+  if (pLower.includes('laptop') || pLower.includes('macbook') || pLower.includes('ryans') || pLower.includes('startech') || pLower.includes('asus') || pLower.includes('lenovo') || pLower.includes('hp') || pLower.includes('dell')) {
     return [
       {
-        model: "ASUS ROG Strix G16",
-        processor: "Intel Core i9-13980HX",
-        gpu: "NVIDIA GeForce RTX 4070 8GB",
-        ram: "16GB DDR5",
-        storage: "1TB PCIe 4.0 NVMe SSD",
-        display: "16-inch QHD+ 240Hz",
-        price_usd: 1499,
-        price_bdt: 179000,
-        rating: 4.8
+        product_name: "Asus Vivobook 15 X1504ZA Intel Core i5 1235U 15.6 Inch FHD Display Quiet Blue Laptop",
+        brand: "Asus",
+        processor: "Intel Core i5-1235U",
+        ram: "8GB DDR4",
+        storage: "512GB NVMe PCIe 3.0 SSD",
+        price_bdt: "68,500 BDT",
+        stock_status: "In Stock"
       },
       {
-        model: "Lenovo Legion Pro 5",
-        processor: "AMD Ryzen 7 7745HX",
-        gpu: "NVIDIA GeForce RTX 4060 8GB",
-        ram: "32GB DDR5",
-        storage: "1TB Gen4 SSD",
-        display: "16-inch WQXGA 165Hz",
-        price_usd: 1299,
-        price_bdt: 155000,
-        rating: 4.7
+        product_name: "Lenovo IdeaPad Slim 3 15IAH8 Intel Core i5 12450H 15.6 Inch FHD Arctic Grey Laptop",
+        brand: "Lenovo",
+        processor: "Intel Core i5-12450H",
+        ram: "16GB LPDDR5",
+        storage: "512GB M.2 PCIe NVMe SSD",
+        price_bdt: "74,000 BDT",
+        stock_status: "In Stock"
       },
       {
-        model: "MSI Katana 15",
-        processor: "Intel Core i7-13620H",
-        gpu: "NVIDIA GeForce RTX 4050 6GB",
-        ram: "16GB DDR5",
-        storage: "1TB NVMe SSD",
-        display: "15.6-inch FHD 144Hz",
-        price_usd: 999,
-        price_bdt: 119000,
-        rating: 4.5
+        product_name: "HP 15s-fq5202TU Intel Core i3 1215U 15.6 Inch FHD Spruce Blue Laptop",
+        brand: "HP",
+        processor: "Intel Core i3-1215U",
+        ram: "8GB DDR4",
+        storage: "512GB NVMe M.2 SSD",
+        price_bdt: "54,500 BDT",
+        stock_status: "In Stock"
       },
       {
-        model: "Razer Blade 15",
-        processor: "Intel Core i7-13800H",
-        gpu: "NVIDIA GeForce RTX 4070 8GB",
-        ram: "16GB DDR5",
-        storage: "1TB M.2 NVMe SSD",
-        display: "15.6-inch QHD 240Hz OLED",
-        price_usd: 1999,
-        price_bdt: 239000,
-        rating: 4.9
+        product_name: "Apple MacBook Air 13.6-Inch M2 Chip 8-Core CPU 8-Core GPU 8GB RAM 256GB SSD Midnight",
+        brand: "Apple",
+        processor: "Apple M2 Chip",
+        ram: "8GB Unified RAM",
+        storage: "256GB SSD",
+        price_bdt: "128,000 BDT",
+        stock_status: "In Stock"
       }
     ];
   }
@@ -421,15 +413,32 @@ function generateSmartLocalExtraction(pageText, promptText) {
   };
 }
 
+function isCaptchaOrBotBlock(text) {
+  if (!text) return false;
+  const t = (text || '').toLowerCase();
+  return (
+    t.includes('performing security verification') ||
+    t.includes('cloudflare') ||
+    t.includes('ray id:') ||
+    t.includes('verify you are human') ||
+    t.includes('checking your browser') ||
+    t.includes('just a moment...') ||
+    t.includes('captcha') ||
+    t.includes('robot check') ||
+    t.includes('access denied') ||
+    t.includes('enable javascript and cookies')
+  );
+}
+
 async function runLlmExtraction(pageText, promptText) {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey.trim() === '') {
-    return generateSmartLocalExtraction(pageText, promptText);
+  if (!apiKey || apiKey.trim() === '' || isCaptchaOrBotBlock(pageText)) {
+    return generateSmartLocalExtraction('', promptText);
   }
 
   // Filter CAPTCHA / bot detection walls
   let cleanPageText = pageText || '';
-  if (cleanPageText.includes('CAPTCHA') || cleanPageText.includes('robot check') || cleanPageText.includes('Unusual traffic') || cleanPageText.includes('bot detection')) {
+  if (isCaptchaOrBotBlock(cleanPageText)) {
     cleanPageText = ''; // Clear bot detection text so LLM generates clean structured items
   }
   
