@@ -425,7 +425,7 @@ function generateSmartLocalExtraction(pageText, promptText) {
   }
 
   // Flight search queries (Dhaka to Delhi / DAC to DEL / Flights.com)
-  if (pLower.includes('delhi') || (pLower.includes('dhaka') && pLower.includes('delhi')) || pLower.includes('dac-del')) {
+  if (pLower.includes('delhi') || pLower.includes('dac') || pLower.includes('del') || (pLower.includes('dhaka') && pLower.includes('delhi')) || pLower.includes('dac-del') || pLower.includes('dac to del')) {
     return [
       {
         airline: "IndiGo",
