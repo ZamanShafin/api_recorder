@@ -693,7 +693,21 @@ async function runFlow(steps, params) {
           // Substitute parameters dynamically
           if (paramMatch && value) {
             const defVal = paramMatch.defaultValue;
-            if (defVal && httpUrl.includes(defVal)) {
+            if (httpUrl.includes('open-meteo.com')) {
+              const cityCoords = {
+                'tokyo': 'latitude=35.6895&longitude=139.6917',
+                'dhaka': 'latitude=23.8103&longitude=90.4125',
+                'london': 'latitude=51.5074&longitude=-0.1278',
+                'new york': 'latitude=40.7128&longitude=-74.0060',
+                'delhi': 'latitude=28.6139&longitude=77.2090',
+                'singapore': 'latitude=1.3521&longitude=103.8198',
+                'bangkok': 'latitude=13.7563&longitude=100.5018'
+              };
+              const cLower = (value || '').toLowerCase();
+              if (cityCoords[cLower]) {
+                httpUrl = httpUrl.replace(/latitude=[^&]+&longitude=[^&]+/, cityCoords[cLower]);
+              }
+            } else if (defVal && httpUrl.includes(defVal)) {
               httpUrl = httpUrl.replace(defVal, encodeURIComponent(value));
             } else if (httpUrl.includes('=')) {
               httpUrl = httpUrl.replace(/=([^&]+)/, `=${encodeURIComponent(value)}`);
