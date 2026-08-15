@@ -797,9 +797,48 @@ function normalizeTargetUrl(url, value) {
   let u = (url || '').trim();
   const val = cleanParamValue(value);
 
-  // If user passed a complete direct URL, use it directly
+  // If user passed a complete direct URL in value, use it directly
   if (val.startsWith('http://') || val.startsWith('https://')) {
     return val;
+  }
+
+  // TechLand BD (supports path-based advance search: /search/advance/product/result/KEYWORD)
+  if (u.includes('techlandbd.com')) {
+    const q = val || 'laptop';
+    if (u.includes('/search/advance/product/result')) {
+      return `https://www.techlandbd.com/search/advance/product/result/${encodeURIComponent(q)}`;
+    }
+    return `https://www.techlandbd.com/index.php?route=product/search&search=${encodeURIComponent(q)}`;
+  }
+
+  // Chaldal BD (path-based /search/KEYWORD)
+  if (u.includes('chaldal.com')) {
+    const q = val || 'grocery';
+    return `https://chaldal.com/search/${encodeURIComponent(q)}`;
+  }
+
+  // BDStall (path-based /search/KEYWORD/)
+  if (u.includes('bdstall.com')) {
+    const q = val || 'products';
+    return `https://www.bdstall.com/search/${encodeURIComponent(q)}/`;
+  }
+
+  // Pickaboo BD
+  if (u.includes('pickaboo.com')) {
+    const q = val || 'smartphone';
+    return `https://www.pickaboo.com/search/result/?q=${encodeURIComponent(q)}`;
+  }
+
+  // UCC BD
+  if (u.includes('ucc.com.bd')) {
+    const q = val || 'processor';
+    return `https://www.ucc.com.bd/product/search?search=${encodeURIComponent(q)}`;
+  }
+
+  // Bikroy.com
+  if (u.includes('bikroy.com')) {
+    const q = val || 'mobile';
+    return `https://bikroy.com/en/ads/bangladesh?query=${encodeURIComponent(q)}`;
   }
 
   // Airlines / Flights (Flights.com, Google Flights, Expedia, Kayak, Skyscanner, Biman, etc.)
@@ -844,9 +883,18 @@ function normalizeTargetUrl(url, value) {
     return `https://www.dsebd.org/displayCompany.php?name=${encodeURIComponent(ticker.toUpperCase())}`;
   }
 
-  // If URL has existing query param and parameter value is present, substitute it
-  if (val && u.includes('=')) {
-    return u.replace(/=([^&]+)/, `=${encodeURIComponent(val)}`);
+  // Universal Path-based Search Replacement (e.g. /search/advance/product/result/laptop or /search/laptop)
+  if (val) {
+    if (u.match(/(.*\/result\/)([^/?#]+)(.*)/i)) {
+      return u.replace(/(.*\/result\/)([^/?#]+)(.*)/i, `$1${encodeURIComponent(val)}$3`);
+    }
+    if (u.match(/(.*\/search\/)([^/?#]+)(.*)/i) && !u.includes('?')) {
+      return u.replace(/(.*\/search\/)([^/?#]+)(.*)/i, `$1${encodeURIComponent(val)}$3`);
+    }
+    // Query param replacement
+    if (u.includes('=')) {
+      return u.replace(/=([^&]+)/, `=${encodeURIComponent(val)}`);
+    }
   }
 
   return u || 'https://www.google.com';
@@ -1679,12 +1727,17 @@ app.post('/api/voice/parse-thought', async (req, res) => {
 Instructions & Rules:
 1. Support ALL types of APIs in the world (REST HTTP APIs, Webhooks, Data Feeds, Search APIs, Web Automation scrapers, Finance/Crypto APIs, Weather, E-Commerce, Social, Movies, Govt/Open Data).
 2. Deep Search & Crawler URL Resolution Archetypes:
-   - For Airlines & Flight searches (e.g. Biman Bangladesh, US-Bangla, Emirates, IndiGo, Air India): "https://www.google.com/travel/flights?q=flights+from+ORIGIN+to+DESTINATION", param: "route"
-   - For Hotel & Accommodation searches (e.g. Booking.com, Agoda, Tripadvisor, Hotels.com): "https://www.booking.com/searchresults.html?ss=DESTINATION", param: "destination"
-   - For Walton BD: "https://waltonbd.com/index.php?route=product/search&search=KEYWORD&description=true", param: "search_query"
+   - For TechLand BD: "https://www.techlandbd.com/search/advance/product/result/KEYWORD", param: "search_query"
    - For Star Tech BD: "https://www.startech.com.bd/product/search?search=KEYWORD", param: "search"
    - For Ryans Computers: "https://www.ryans.com/search?q=KEYWORD", param: "q"
+   - For Walton BD: "https://waltonbd.com/index.php?route=product/search&search=KEYWORD&description=true", param: "search_query"
+   - For UCC BD: "https://www.ucc.com.bd/product/search?search=KEYWORD", param: "search"
+   - For Pickaboo: "https://www.pickaboo.com/search/result/?q=KEYWORD", param: "q"
+   - For Chaldal: "https://chaldal.com/search/KEYWORD", param: "q"
    - For Daraz BD: "https://www.daraz.com.bd/catalog/?q=KEYWORD", param: "q"
+   - For Bikroy: "https://bikroy.com/en/ads/bangladesh?query=KEYWORD", param: "query"
+   - For Airlines & Flight searches (e.g. Biman Bangladesh, US-Bangla, Emirates, IndiGo, Air India): "https://www.google.com/travel/flights?q=flights+from+ORIGIN+to+DESTINATION", param: "route"
+   - For Hotel & Accommodation searches (e.g. Booking.com, Agoda, Tripadvisor, Hotels.com): "https://www.booking.com/searchresults.html?ss=DESTINATION", param: "destination"
    - For Dhaka Stock Exchange (DSE): "https://www.dsebd.org/displayCompany.php?name=TICKER", param: "name"
    - For IMDb: "https://www.imdb.com/chart/top/", param: "chart_type"
    - For Nasdaq: "https://www.nasdaq.com/market-activity/stocks/aapl", param: "ticker"
