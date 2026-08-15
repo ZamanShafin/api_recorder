@@ -311,7 +311,7 @@ Return a valid JSON object matching this schema:
 // --- PLAYWRIGHT RUNNER ---
 
 function generateSmartLocalExtraction(pageText, promptText) {
-  const pLower = (promptText || '').toLowerCase();
+  const pLower = ((promptText || '') + ' ' + (pageText || '')).toLowerCase();
   const textLower = (pageText || '').toLowerCase();
 
   // Explicit Zero-Result Detection
