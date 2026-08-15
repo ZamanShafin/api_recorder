@@ -562,28 +562,47 @@ function normalizeTargetUrl(url, value) {
   let u = (url || '').trim();
   const val = (value || '').trim();
 
-  if (u.includes('ryanscomputers.com') || u.includes('ryans.com')) {
-    const q = val || 'laptop';
-    return `https://www.ryans.com/search?q=${encodeURIComponent(q)}`;
+  function getExistingParam(target, paramName) {
+    try {
+      const match = target.match(new RegExp(`[?&]${paramName}=([^&]+)`));
+      return match ? decodeURIComponent(match[1]) : '';
+    } catch (e) {
+      return '';
+    }
   }
 
-  if (u.includes('startech.com')) {
-    const q = val || 'laptop';
-    return `https://www.startech.com.bd/product/search?search=${encodeURIComponent(q)}`;
-  }
-
+  // Walton BD
   if (u.includes('waltonbd.com')) {
-    const q = val || 'Water Heater';
+    const existing = getExistingParam(u, 'search');
+    const q = val || existing || 'products';
     return `https://waltonbd.com/index.php?route=product/search&search=${encodeURIComponent(q)}&description=true`;
   }
 
+  // Ryans Computers
+  if (u.includes('ryanscomputers.com') || u.includes('ryans.com')) {
+    const existing = getExistingParam(u, 'q');
+    const q = val || existing || 'laptop';
+    return `https://www.ryans.com/search?q=${encodeURIComponent(q)}`;
+  }
+
+  // Star Tech BD
+  if (u.includes('startech.com')) {
+    const existing = getExistingParam(u, 'search');
+    const q = val || existing || 'laptop';
+    return `https://www.startech.com.bd/product/search?search=${encodeURIComponent(q)}`;
+  }
+
+  // Dhaka Stock Exchange
   if (u.includes('dsebd.org')) {
-    const q = val || 'SQURPHARMA';
+    const existing = getExistingParam(u, 'name');
+    const q = val || existing || 'SQURPHARMA';
     return `https://www.dsebd.org/displayCompany.php?name=${encodeURIComponent(q.toUpperCase())}`;
   }
 
+  // Booking.com
   if (u.includes('booking.com')) {
-    const q = val || 'Singapore';
+    const existing = getExistingParam(u, 'ss');
+    const q = val || existing || 'Singapore';
     return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(q)}`;
   }
 
