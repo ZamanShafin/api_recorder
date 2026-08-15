@@ -1415,6 +1415,11 @@ Instructions & Rules:
     const aiData = await geminiRes.json();
     let rawText = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Gemini did not return a valid JSON object in the response.');
+    }
+
     const parsedSchema = JSON.parse(jsonMatch[0]);
 
     // Automatically register the Real Callable API into the database
@@ -1560,6 +1565,11 @@ Return ONLY a valid JSON object matching this exact schema:
     const aiData = await geminiRes.json();
     let rawText = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Gemini did not return a valid JSON object for audio transcription.');
+    }
+
     const parsedSchema = JSON.parse(jsonMatch[0]);
 
     // Automatically register the Real Callable API into the database
