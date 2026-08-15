@@ -802,85 +802,163 @@ function normalizeTargetUrl(url, value) {
     return val;
   }
 
-  // TechLand BD (exact advance search URL: /search/advance/product/result/KEYWORD)
+  // 1. TechLand BD
   if (u.includes('techlandbd.com')) {
     const q = val || 'laptop';
     return `https://www.techlandbd.com/search/advance/product/result/${encodeURIComponent(q)}`;
   }
 
-  // Chaldal BD (path-based /search/KEYWORD)
-  if (u.includes('chaldal.com')) {
-    const q = val || 'grocery';
-    return `https://chaldal.com/search/${encodeURIComponent(q)}`;
-  }
-
-  // BDStall (path-based /search/KEYWORD/)
-  if (u.includes('bdstall.com')) {
-    const q = val || 'products';
-    return `https://www.bdstall.com/search/${encodeURIComponent(q)}/`;
-  }
-
-  // Pickaboo BD
-  if (u.includes('pickaboo.com')) {
-    const q = val || 'smartphone';
-    return `https://www.pickaboo.com/search/result/?q=${encodeURIComponent(q)}`;
-  }
-
-  // UCC BD
-  if (u.includes('ucc.com.bd')) {
-    const q = val || 'processor';
-    return `https://www.ucc.com.bd/product/search?search=${encodeURIComponent(q)}`;
-  }
-
-  // Bikroy.com
-  if (u.includes('bikroy.com')) {
-    const q = val || 'mobile';
-    return `https://bikroy.com/en/ads/bangladesh?query=${encodeURIComponent(q)}`;
-  }
-
-  // Airlines / Flights (Flights.com, Google Flights, Expedia, Kayak, Skyscanner, Biman, etc.)
-  if (u.includes('flights.com') || u.includes('travel/flights') || u.includes('expedia') || u.includes('kayak') || u.includes('skyscanner') || u.includes('biman') || u.includes('flights') || u.includes('flight')) {
-    const route = parseAnyFlightRoute(val || u);
-    return `https://www.google.com/travel/flights?q=flights+from+${encodeURIComponent(route.origin)}+to+${encodeURIComponent(route.destination)}`;
-  }
-
-  // Hotel Websites (Booking.com, Agoda, Tripadvisor, Hotels)
-  if (u.includes('booking.com') || u.includes('agoda') || u.includes('tripadvisor') || u.includes('hotels')) {
-    const dest = val || 'Singapore';
-    return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(dest)}`;
-  }
-
-  // Walton BD
-  if (u.includes('waltonbd.com')) {
-    const q = val || 'products';
-    return `https://waltonbd.com/index.php?route=product/search&search=${encodeURIComponent(q)}&description=true`;
-  }
-
-  // Ryans Computers
-  if (u.includes('ryanscomputers.com') || u.includes('ryans.com')) {
-    const q = val || 'laptop';
-    return `https://www.ryans.com/search?q=${encodeURIComponent(q)}`;
-  }
-
-  // Star Tech BD
+  // 2. Star Tech BD
   if (u.includes('startech.com')) {
     const q = val || 'laptop';
     return `https://www.startech.com.bd/product/search?search=${encodeURIComponent(q)}`;
   }
 
-  // Daraz BD
+  // 3. Ryans Computers
+  if (u.includes('ryanscomputers.com') || u.includes('ryans.com')) {
+    const q = val || 'laptop';
+    return `https://www.ryans.com/search?q=${encodeURIComponent(q)}`;
+  }
+
+  // 4. Walton BD
+  if (u.includes('waltonbd.com')) {
+    const q = val || 'products';
+    return `https://waltonbd.com/index.php?route=product/search&search=${encodeURIComponent(q)}&description=true`;
+  }
+
+  // 5. Daraz BD
   if (u.includes('daraz.com')) {
     const q = val || 'products';
     return `https://www.daraz.com.bd/catalog/?q=${encodeURIComponent(q)}`;
   }
 
-  // Dhaka Stock Exchange
+  // 6. Rokomari BD
+  if (u.includes('rokomari.com')) {
+    const q = val || 'books';
+    return `https://www.rokomari.com/search?term=${encodeURIComponent(q)}`;
+  }
+
+  // 7. Othoba BD
+  if (u.includes('othoba.com')) {
+    const q = val || 'products';
+    return `https://www.othoba.com/search?q=${encodeURIComponent(q)}`;
+  }
+
+  // 8. Chaldal BD
+  if (u.includes('chaldal.com')) {
+    const q = val || 'grocery';
+    return `https://chaldal.com/search/${encodeURIComponent(q)}`;
+  }
+
+  // 9. BDStall
+  if (u.includes('bdstall.com')) {
+    const q = val || 'products';
+    return `https://www.bdstall.com/search/${encodeURIComponent(q)}/`;
+  }
+
+  // 10. Pickaboo BD
+  if (u.includes('pickaboo.com')) {
+    const q = val || 'smartphone';
+    return `https://www.pickaboo.com/search/result/?q=${encodeURIComponent(q)}`;
+  }
+
+  // 11. UCC BD
+  if (u.includes('ucc.com.bd')) {
+    const q = val || 'processor';
+    return `https://www.ucc.com.bd/product/search?search=${encodeURIComponent(q)}`;
+  }
+
+  // 12. Bikroy.com
+  if (u.includes('bikroy.com')) {
+    const q = val || 'mobile';
+    return `https://bikroy.com/en/ads/bangladesh?query=${encodeURIComponent(q)}`;
+  }
+
+  // 13. Amazon
+  if (u.includes('amazon.com') || u.includes('amazon.')) {
+    const q = val || 'electronics';
+    return `https://www.amazon.com/s?k=${encodeURIComponent(q)}`;
+  }
+
+  // 14. eBay
+  if (u.includes('ebay.com')) {
+    const q = val || 'collectibles';
+    return `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}`;
+  }
+
+  // 15. Walmart
+  if (u.includes('walmart.com')) {
+    const q = val || 'items';
+    return `https://www.walmart.com/search?q=${encodeURIComponent(q)}`;
+  }
+
+  // 16. Newegg
+  if (u.includes('newegg.com')) {
+    const q = val || 'hardware';
+    return `https://www.newegg.com/p/pl?d=${encodeURIComponent(q)}`;
+  }
+
+  // 17. Target
+  if (u.includes('target.com')) {
+    const q = val || 'goods';
+    return `https://www.target.com/s?searchTerm=${encodeURIComponent(q)}`;
+  }
+
+  // 18. AliExpress
+  if (u.includes('aliexpress.com')) {
+    const q = val || 'gadgets';
+    return `https://www.aliexpress.com/w/wholesale-${encodeURIComponent(q)}.html`;
+  }
+
+  // 19. IMDb
+  if (u.includes('imdb.com')) {
+    const q = val || 'top';
+    return `https://www.imdb.com/find/?q=${encodeURIComponent(q)}`;
+  }
+
+  // 20. Wikipedia
+  if (u.includes('wikipedia.org')) {
+    const q = val || 'science';
+    return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(q)}`;
+  }
+
+  // 21. YouTube
+  if (u.includes('youtube.com')) {
+    const q = val || 'music';
+    return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+  }
+
+  // 22. GitHub
+  if (u.includes('github.com')) {
+    const q = val || 'python';
+    return `https://github.com/search?q=${encodeURIComponent(q)}`;
+  }
+
+  // 23. Reddit
+  if (u.includes('reddit.com')) {
+    const q = val || 'tech';
+    return `https://www.reddit.com/search/?q=${encodeURIComponent(q)}`;
+  }
+
+  // 24. Dhaka Stock Exchange
   if (u.includes('dsebd.org')) {
     const ticker = val || 'SQURPHARMA';
     return `https://www.dsebd.org/displayCompany.php?name=${encodeURIComponent(ticker.toUpperCase())}`;
   }
 
-  // Universal Path-based Search Replacement (e.g. /search/advance/product/result/laptop or /search/laptop)
+  // 25. Airlines / Flights (Flights.com, Google Flights, Expedia, Kayak, Skyscanner, Biman, etc.)
+  if (u.includes('flights.com') || u.includes('travel/flights') || u.includes('expedia') || u.includes('kayak') || u.includes('skyscanner') || u.includes('biman') || u.includes('flights') || u.includes('flight')) {
+    const route = parseAnyFlightRoute(val || u);
+    return `https://www.google.com/travel/flights?q=flights+from+${encodeURIComponent(route.origin)}+to+${encodeURIComponent(route.destination)}`;
+  }
+
+  // 26. Hotel Websites (Booking.com, Agoda, Tripadvisor, Hotels)
+  if (u.includes('booking.com') || u.includes('agoda') || u.includes('tripadvisor') || u.includes('hotels')) {
+    const dest = val || 'Singapore';
+    return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(dest)}`;
+  }
+
+  // 27. Universal Path-based Search Replacement (e.g. /search/advance/product/result/laptop or /search/laptop)
   if (val) {
     if (u.match(/(.*\/result\/)([^/?#]+)(.*)/i)) {
       return u.replace(/(.*\/result\/)([^/?#]+)(.*)/i, `$1${encodeURIComponent(val)}$3`);
@@ -894,7 +972,21 @@ function normalizeTargetUrl(url, value) {
     }
   }
 
-  return u || 'https://www.google.com';
+  // 28. UNIVERSAL FALLBACK FOR ANY OTHER WEBSITE IN THE WORLD!
+  try {
+    const parsed = new URL(u.startsWith('http') ? u : 'https://' + u);
+    if (val) {
+      if (parsed.searchParams && Array.from(parsed.searchParams.keys()).length > 0) {
+        const firstKey = Array.from(parsed.searchParams.keys())[0];
+        parsed.searchParams.set(firstKey, val);
+        return parsed.href;
+      }
+      return `${parsed.origin}/search?q=${encodeURIComponent(val)}`;
+    }
+    return parsed.href;
+  } catch (e) {
+    return u || 'https://www.google.com';
+  }
 }
 
 async function autoFillAndCrawlIfSearchPage(page, query) {
