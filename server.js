@@ -783,86 +783,59 @@ function normalizeTargetUrl(url, value) {
   let u = (url || '').trim();
   const val = (value || '').trim();
 
-  function getExistingParam(target, paramName) {
-    try {
-      const match = target.match(new RegExp(`[?&]${paramName}=([^&]+)`));
-      return match ? decodeURIComponent(match[1]) : '';
-    } catch (e) {
-      return '';
-    }
+  // If user passed a complete direct URL, use it directly
+  if (val.startsWith('http://') || val.startsWith('https://')) {
+    return val;
   }
 
-  // Flights.com / Expedia / Kayak / Airline Portals
-  if (u.includes('flights.com') || u.includes('expedia.com') || u.includes('kayak.com') || u.includes('biman-airlines.com') || u.includes('biman') || u.includes('usbair.com') || u.includes('flights') || u.includes('airline')) {
-    const flightInfo = parseFlightOrHotelQuery(val || u);
-    let orig = 'DAC';
-    let dest = 'DEL';
-    if (flightInfo.type === 'flight') {
-      orig = flightInfo.origin.toLowerCase().includes('dhaka') ? 'DAC' : flightInfo.origin;
-      dest = flightInfo.destination.toLowerCase().includes('delhi') ? 'DEL' : (flightInfo.destination.toLowerCase().includes('cox') ? 'CXB' : flightInfo.destination);
-      return `https://www.flights.com/Flights-Search?flight-type=on&mode=search&trip=roundtrip&leg1=from:${encodeURIComponent(orig)},to:${encodeURIComponent(dest)}`;
-    }
-    return `https://www.flights.com/Flights-Search?flight-type=on&mode=search&trip=roundtrip&leg1=from:DAC,to:DEL`;
+  // Airlines / Flights (Flights.com, Google Flights, Expedia, Kayak, Skyscanner, Biman, etc.)
+  if (u.includes('flights.com') || u.includes('travel/flights') || u.includes('expedia') || u.includes('kayak') || u.includes('skyscanner') || u.includes('biman') || u.includes('flights') || u.includes('flight')) {
+    const route = parseAnyFlightRoute(val || u);
+    return `https://www.google.com/travel/flights?q=flights+from+${encodeURIComponent(route.origin)}+to+${encodeURIComponent(route.destination)}`;
   }
 
   // Hotel Websites (Booking.com, Agoda, Tripadvisor, Hotels)
-  if (u.includes('booking.com')) {
-    const existing = getExistingParam(u, 'ss');
-    const hotelInfo = parseFlightOrHotelQuery(val || existing);
-    const dest = hotelInfo.destination || val || existing || 'Singapore';
+  if (u.includes('booking.com') || u.includes('agoda') || u.includes('tripadvisor') || u.includes('hotels')) {
+    const dest = val || 'Singapore';
     return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(dest)}`;
-  }
-
-  if (u.includes('agoda.com')) {
-    const existing = getExistingParam(u, 'city');
-    const hotelInfo = parseFlightOrHotelQuery(val || existing);
-    const dest = hotelInfo.destination || val || existing || 'Singapore';
-    return `https://www.agoda.com/search?city=${encodeURIComponent(dest)}`;
-  }
-
-  if (u.includes('tripadvisor.com')) {
-    const existing = getExistingParam(u, 'q');
-    const hotelInfo = parseFlightOrHotelQuery(val || existing);
-    const dest = hotelInfo.destination || val || existing || 'Singapore';
-    return `https://www.tripadvisor.com/Search?q=${encodeURIComponent(dest)}+hotels`;
   }
 
   // Walton BD
   if (u.includes('waltonbd.com')) {
-    const existing = getExistingParam(u, 'search');
-    const q = val || existing || 'products';
+    const q = val || 'products';
     return `https://waltonbd.com/index.php?route=product/search&search=${encodeURIComponent(q)}&description=true`;
   }
 
   // Ryans Computers
   if (u.includes('ryanscomputers.com') || u.includes('ryans.com')) {
-    const existing = getExistingParam(u, 'q');
-    const q = val || existing || 'laptop';
+    const q = val || 'laptop';
     return `https://www.ryans.com/search?q=${encodeURIComponent(q)}`;
   }
 
   // Star Tech BD
   if (u.includes('startech.com')) {
-    const existing = getExistingParam(u, 'search');
-    const q = val || existing || 'laptop';
+    const q = val || 'laptop';
     return `https://www.startech.com.bd/product/search?search=${encodeURIComponent(q)}`;
   }
 
   // Daraz BD
   if (u.includes('daraz.com')) {
-    const existing = getExistingParam(u, 'q');
-    const q = val || existing || 'products';
+    const q = val || 'products';
     return `https://www.daraz.com.bd/catalog/?q=${encodeURIComponent(q)}`;
   }
 
   // Dhaka Stock Exchange
   if (u.includes('dsebd.org')) {
-    const existing = getExistingParam(u, 'name');
-    const q = val || existing || 'SQURPHARMA';
-    return `https://www.dsebd.org/displayCompany.php?name=${encodeURIComponent(q.toUpperCase())}`;
+    const ticker = val || 'SQURPHARMA';
+    return `https://www.dsebd.org/displayCompany.php?name=${encodeURIComponent(ticker.toUpperCase())}`;
   }
 
-  return u;
+  // If URL has existing query param and parameter value is present, substitute it
+  if (val && u.includes('=')) {
+    return u.replace(/=([^&]+)/, `=${encodeURIComponent(val)}`);
+  }
+
+  return u || 'https://www.google.com';
 }
 
 async function autoFillAndCrawlIfSearchPage(page, query) {
@@ -870,16 +843,16 @@ async function autoFillAndCrawlIfSearchPage(page, query) {
 
   try {
     // 1. Check for Airline origin & destination form inputs
-    const fromInput = page.locator('input[placeholder*="From" i], input[id*="origin" i], input[name*="origin" i], input[aria-label*="From" i]').first();
-    const toInput = page.locator('input[placeholder*="To" i], input[id*="destination" i], input[name*="destination" i], input[aria-label*="To" i]').first();
+    const fromInput = page.locator('input[placeholder*="From" i], input[id*="origin" i], input[name*="origin" i], input[aria-label*="From" i], input[aria-label*="Where from" i]').first();
+    const toInput = page.locator('input[placeholder*="To" i], input[id*="destination" i], input[name*="destination" i], input[aria-label*="To" i], input[aria-label*="Where to" i]').first();
 
-    const flightMatch = query.match(/(?:from\s+)?([A-Za-z\s'\.]+?)\s+to\s+([A-Za-z\s'\.]+)/i);
-    if (await fromInput.count() > 0 && await toInput.count() > 0 && flightMatch) {
-      console.log(`[Deep Form Crawler] Detected flight booking form on page! Auto-filling From: ${flightMatch[1]} -> To: ${flightMatch[2]}`);
-      await fromInput.fill(flightMatch[1].trim()).catch(() => {});
-      await toInput.fill(flightMatch[2].trim()).catch(() => {});
+    const route = parseAnyFlightRoute(query);
+    if (await fromInput.count() > 0 && await toInput.count() > 0 && route.origin && route.destination) {
+      console.log(`[Deep Form Crawler] Detected flight booking form on page! Auto-filling From: ${route.origin} -> To: ${route.destination}`);
+      await fromInput.fill(route.origin).catch(() => {});
+      await toInput.fill(route.destination).catch(() => {});
       
-      const searchBtn = page.locator('button:has-text("Search"), button:has-text("Find Flights"), button[type="submit"]').first();
+      const searchBtn = page.locator('button:has-text("Search"), button:has-text("Find Flights"), button:has-text("Search flights"), button[type="submit"]').first();
       if (await searchBtn.count() > 0) {
         console.log('[Deep Form Crawler] Submitting flight search form...');
         await searchBtn.click().catch(() => {});
@@ -889,7 +862,7 @@ async function autoFillAndCrawlIfSearchPage(page, query) {
     }
 
     // 2. Check for general search bar on e-commerce or portal
-    const searchInput = page.locator('input[type="search"], input[name="q"], input[placeholder*="search" i], input[name*="search" i]').first();
+    const searchInput = page.locator('input[type="search"], input[name="q"], input[placeholder*="search" i], input[name*="search" i], input[id*="search" i]').first();
     if (await searchInput.count() > 0) {
       const isVisible = await searchInput.isVisible().catch(() => false);
       if (isVisible) {
