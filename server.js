@@ -940,6 +940,70 @@ async function autoFillAndCrawlIfSearchPage(page, query) {
   }
 }
 
+async function discoverWebsiteSearchUrl(targetUrl, queryKeyword = 'laptop') {
+  let domain = (targetUrl || '').trim();
+  if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
+    domain = 'https://' + domain;
+  }
+
+  let baseOrigin = '';
+  try {
+    const parsed = new URL(domain);
+    baseOrigin = parsed.origin;
+  } catch (e) {
+    baseOrigin = domain;
+  }
+
+  console.log(`[Autonomous Discovery Crawler] Live crawling ${baseOrigin} to discover search URLs for: "${queryKeyword}"`);
+  const browser = await chromium.launch({
+    headless: true,
+    args: [
+      '--disable-blink-features=AutomationControlled',
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-http2',
+      '--ignore-certificate-errors'
+    ]
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.goto(baseOrigin, { waitUntil: 'domcontentloaded', timeout: 12000 }).catch(() => {});
+    await page.waitForTimeout(1000);
+
+    const searchInput = page.locator('input[type="search"], input[name="search"], input[name="q"], input[id*="search" i], input[placeholder*="search" i], input[placeholder*="product" i]').first();
+    let resolvedSearchUrl = '';
+    
+    if (await searchInput.count() > 0) {
+      await searchInput.fill(queryKeyword).catch(() => {});
+      const searchBtn = page.locator('button[type="submit"], button:has-text("Search"), .search-btn, #button-search, button i.fa-search, button i[class*="search"]').first();
+      
+      await Promise.all([
+        page.waitForNavigation({ timeout: 5000 }).catch(() => null),
+        (await searchBtn.count() > 0) ? searchBtn.click().catch(() => searchInput.press('Enter')) : searchInput.press('Enter')
+      ]);
+
+      await page.waitForTimeout(1200);
+      const afterNav = page.url();
+      if (afterNav && afterNav !== baseOrigin && afterNav !== baseOrigin + '/') {
+        resolvedSearchUrl = afterNav;
+      }
+    }
+
+    if (!resolvedSearchUrl) {
+      resolvedSearchUrl = normalizeTargetUrl(baseOrigin, queryKeyword);
+    }
+
+    console.log(`[Autonomous Discovery Crawler] Resolved search URL for ${baseOrigin}: ${resolvedSearchUrl}`);
+    return resolvedSearchUrl;
+  } catch (err) {
+    console.warn('[Autonomous Discovery Crawler Note]:', err.message);
+    return normalizeTargetUrl(baseOrigin, queryKeyword);
+  } finally {
+    await browser.close();
+  }
+}
+
 async function bypassCaptchaIfPresent(page) {
   try {
     const turnstileIframe = page.frameLocator('iframe[src*="turnstile"], iframe[src*="challenge"], iframe[title*="Turnstile"]');
@@ -1843,6 +1907,11 @@ Instructions & Rules:
         extractionPrompt: isFlight ? "Extract available flights including airline names, departure times, arrival times, and prices." : "Extract items with model names, prices, and stock statuses.",
         spokenFeedback: "I have configured your voice API with dynamic parameters and live extraction."
       };
+    }
+
+    if (parsedSchema && parsedSchema.targetUrl) {
+      const defVal = parsedSchema.parameter ? parsedSchema.parameter.defaultValue : '';
+      parsedSchema.targetUrl = normalizeTargetUrl(parsedSchema.targetUrl, defVal);
     }
 
     // Automatically register the Real Callable API into the database
