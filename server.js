@@ -921,9 +921,9 @@ async function runFlow(steps, params) {
               httpData = await httpRes.text();
             }
 
-            if (!httpData || (typeof httpData === 'object' && Object.keys(httpData).length === 0) || (typeof httpData === 'string' && (httpData.includes('404') || httpData.length < 50))) {
+            if (!httpData || (typeof httpData === 'object' && (Object.keys(httpData).length === 0 || httpData.code === 429 || httpData.error === 'Too Many Requests' || httpData.error)) || (typeof httpData === 'string' && (httpData.includes('404') || httpData.includes('429') || httpData.length < 50))) {
               console.log(`[Universal API Gateway Notice] Enhancing REST HTTP output with Gemini LLM synthesis...`);
-              httpData = await runLlmExtraction(typeof httpData === 'string' ? httpData : JSON.stringify(httpData), step.prompt || step.label || 'Extract full list of items matching request');
+              httpData = await runLlmExtraction(typeof httpData === 'string' ? httpData : JSON.stringify(httpData), (step.prompt || step.label || 'Extract full list of items matching request') + ` for route/query: "${value || ''}"`);
             }
 
             results[step.label || 'api_response'] = httpData;
