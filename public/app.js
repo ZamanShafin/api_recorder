@@ -1914,6 +1914,74 @@ async function triggerVoiceThoughtParsing(thought) {
     if (voiceApiParam) voiceApiParam.value = currentVoiceSchema.parameter ? `${currentVoiceSchema.parameter.name} (Default: "${currentVoiceSchema.parameter.defaultValue}")` : 'None';
     if (voiceApiPrompt) voiceApiPrompt.value = currentVoiceSchema.extractionPrompt || '';
 
+    // Render Real Live Endpoint URL & Code Snippets
+    const voiceEndpointInput = document.getElementById('voice-api-endpoint');
+    const voiceCodeSnippet = document.getElementById('voice-code-snippet');
+    const apiBaseUrl = window.location.origin;
+    const liveApiId = currentVoiceSchema.apiId || 'api_voice_auto';
+    const liveEndpointFullUrl = `${apiBaseUrl}/api/run/${liveApiId}?apiKey=sk_usr_347440e8de42440dae8de0bf`;
+
+    if (voiceEndpointInput) {
+      voiceEndpointInput.value = liveEndpointFullUrl;
+    }
+
+    window.updateVoiceSnippet = function(tabType) {
+      if (!voiceCodeSnippet) return;
+      if (tabType === 'curl') {
+        voiceCodeSnippet.textContent = `curl -X POST "${liveEndpointFullUrl}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.name : 'query'}": "${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.defaultValue : ''}"}'`;
+      } else if (tabType === 'js') {
+        voiceCodeSnippet.textContent = `const response = await fetch("${liveEndpointFullUrl}", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ "${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.name : 'query'}": "${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.defaultValue : ''}" })
+});
+const data = await response.json();
+console.log(data);`;
+      } else if (tabType === 'python') {
+        voiceCodeSnippet.textContent = `import requests
+
+url = "${liveEndpointFullUrl}"
+payload = {"${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.name : 'query'}": "${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.defaultValue : ''}"}
+response = requests.post(url, json=payload)
+print(response.json())`;
+      }
+    };
+
+    window.updateVoiceSnippet('curl');
+
+    // Tab buttons handler
+    document.querySelectorAll('.voice-code-tab').forEach(tab => {
+      tab.onclick = () => {
+        document.querySelectorAll('.voice-code-tab').forEach(t => {
+          t.style.background = 'transparent';
+          t.style.color = 'var(--text-muted)';
+        });
+        tab.style.background = 'var(--primary)';
+        tab.style.color = 'white';
+        window.updateVoiceSnippet(tab.getAttribute('data-tab'));
+      };
+    });
+
+    const btnCopyVoiceEndpoint = document.getElementById('btn-copy-voice-endpoint');
+    if (btnCopyVoiceEndpoint && voiceEndpointInput) {
+      btnCopyVoiceEndpoint.onclick = () => {
+        navigator.clipboard.writeText(voiceEndpointInput.value);
+        btnCopyVoiceEndpoint.textContent = 'Copied!';
+        setTimeout(() => { btnCopyVoiceEndpoint.textContent = 'Copy URL'; }, 2000);
+      };
+    }
+
+    const btnCopyVoiceCode = document.getElementById('btn-copy-voice-code');
+    if (btnCopyVoiceCode && voiceCodeSnippet) {
+      btnCopyVoiceCode.onclick = () => {
+        navigator.clipboard.writeText(voiceCodeSnippet.textContent);
+        btnCopyVoiceCode.textContent = 'Copied!';
+        setTimeout(() => { btnCopyVoiceCode.textContent = 'Copy'; }, 2000);
+      };
+    }
+
     // Text-to-Speech audio confirmation if supported
     if ('speechSynthesis' in window && currentVoiceSchema.spokenFeedback) {
       const utterance = new SpeechSynthesisUtterance(currentVoiceSchema.spokenFeedback);

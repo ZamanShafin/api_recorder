@@ -312,6 +312,17 @@ Return a valid JSON object matching this schema:
 
 function generateSmartLocalExtraction(pageText, promptText) {
   const pLower = (promptText || '').toLowerCase();
+  const textLower = (pageText || '').toLowerCase();
+
+  // Explicit Zero-Result Detection
+  if (textLower.includes('there is no product that matches the search criteria') || textLower.includes('no results found') || textLower.includes('0 results for') || textLower.includes('no products found')) {
+    return {
+      query: promptText,
+      total_results: 0,
+      message: "No products matched the search criteria on the target website.",
+      products: []
+    };
+  }
 
   // Tech / Laptops / MacBooks / Ryans / Star Tech / Walton
   if (pLower.includes('laptop') || pLower.includes('macbook') || pLower.includes('ryans') || pLower.includes('startech') || pLower.includes('asus') || pLower.includes('lenovo') || pLower.includes('hp') || pLower.includes('dell')) {
@@ -478,13 +489,14 @@ User Request: "${promptText}"
 
 Guidelines & Rules:
 1. NEVER output CAPTCHA error messages, bot block warnings, or "The requested web page content was blocked by a bot detection system"! Even if the web page text mentions CAPTCHA or bot detection, ignore the protection wall and synthesize the full, rich structured JSON array or object requested by the user.
-2. SINGLE ENTITY vs LIST DETECTION:
-   - If the user request asks for a SINGLE specific company, stock, or item (e.g. "SQURPHARMA", "Square stock price", "BATBC", "Apple stock", "Tokyo Weather"), return ONLY THAT SINGLE JSON OBJECT. Do NOT return an array or list of other companies!
+2. ACCURATE LIVE EXTRACTION & ZERO-RESULT HANDLING:
+   - If the webpage content contains real extracted items (e.g. products, prices, tables), extract the exact real data found.
+   - If the webpage content explicitly indicates that no products or records were found (e.g. "There is no product that matches the search criteria"), return an authentic search response matching the requested query (e.g., { "query": "zebra", "total_results": 0, "message": "No products matched the search criteria on Walton BD.", "products": [] }). Do NOT hallucinate unrelated products like water heaters or refrigerators!
+3. SINGLE ENTITY vs LIST DETECTION:
+   - If the user request asks for a SINGLE specific company, stock, or item (e.g. "SQURPHARMA", "Square stock price", "BATBC", "Apple stock", "Tokyo Weather"), return ONLY THAT SINGLE JSON OBJECT.
    - If the user request explicitly asks for MULTIPLE items or a search list (e.g. "gaming laptops", "all flights from Dhaka to Delhi", "refrigerator list", "trending repositories"), return a LIST / ARRAY of items.
-3. For Gaming Laptops: return a detailed array of laptops (ASUS ROG Strix G16, Lenovo Legion Pro 5, MSI Katana 15, Razer Blade 15, HP Omen 16) with model names, processors, GPUs, RAM, storage, prices in USD/BDT, and ratings.
 4. For stock lookup (e.g. SQURPHARMA, BATBC, GP), extract or provide ONLY the requested target company's metrics (trading_code, company_name, ltp, high, low, volume, market_status).
-5. NEVER return null values or "error: No data found".
-6. Return ONLY a valid JSON object or array. Do not include markdown code block formatting. Return ONLY raw JSON text.
+5. Return ONLY a valid JSON object or array. Do not include markdown code block formatting. Return ONLY raw JSON text.
 
 Web Page / API Content:
 ${cleanPageText || 'Dynamic API Execution Content'}
@@ -1403,12 +1415,58 @@ Instructions & Rules:
     const aiData = await geminiRes.json();
     let rawText = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Gemini did not return a valid JSON object in the response.');
-    }
-    
     const parsedSchema = JSON.parse(jsonMatch[0]);
+
+    // Automatically register the Real Callable API into the database
+    const db = getDB();
+    const newApiId = 'api_' + uuidv4().replace(/-/g, '').substring(0, 12);
+    const userId = 'usr_5cc37dd6a113';
+    const callerApiKey = 'sk_usr_347440e8de42440dae8de0bf';
+
+    const isRest = parsedSchema.apiCategory === 'REST_HTTP';
+    const steps = isRest ? [
+      {
+        action: 'http_request',
+        url: parsedSchema.targetUrl,
+        method: parsedSchema.httpMethod || 'GET',
+        headers: parsedSchema.headers || { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        prompt: parsedSchema.extractionPrompt
+      }
+    ] : [
+      {
+        action: 'navigate',
+        url: parsedSchema.targetUrl
+      },
+      {
+        action: 'extract_llm',
+        prompt: parsedSchema.extractionPrompt
+      }
+    ];
+
+    const newApiRecord = {
+      id: newApiId,
+      userId: userId,
+      name: parsedSchema.name || 'Voice Automation API',
+      description: parsedSchema.description || 'AI-generated API from voice thought',
+      steps: steps,
+      parameters: parsedSchema.parameter ? [
+        {
+          name: parsedSchema.parameter.name || 'query',
+          stepIndex: 0,
+          defaultValue: parsedSchema.parameter.defaultValue || ''
+        }
+      ] : [],
+      isPublic: true,
+      priceBDT: 0,
+      createdAt: new Date().toISOString()
+    };
+
+    db.apis.push(newApiRecord);
+    saveDB(db);
+
+    parsedSchema.apiId = newApiId;
+    parsedSchema.liveEndpoint = `/api/run/${newApiId}?apiKey=${callerApiKey}`;
+
     res.json({
       success: true,
       data: parsedSchema
@@ -1502,12 +1560,58 @@ Return ONLY a valid JSON object matching this exact schema:
     const aiData = await geminiRes.json();
     let rawText = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Gemini did not return a valid JSON object for audio transcription.');
-    }
-    
     const parsedSchema = JSON.parse(jsonMatch[0]);
+
+    // Automatically register the Real Callable API into the database
+    const db = getDB();
+    const newApiId = 'api_' + uuidv4().replace(/-/g, '').substring(0, 12);
+    const userId = 'usr_5cc37dd6a113';
+    const callerApiKey = 'sk_usr_347440e8de42440dae8de0bf';
+
+    const isRest = parsedSchema.apiCategory === 'REST_HTTP';
+    const steps = isRest ? [
+      {
+        action: 'http_request',
+        url: parsedSchema.targetUrl,
+        method: parsedSchema.httpMethod || 'GET',
+        headers: parsedSchema.headers || { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        prompt: parsedSchema.extractionPrompt
+      }
+    ] : [
+      {
+        action: 'navigate',
+        url: parsedSchema.targetUrl
+      },
+      {
+        action: 'extract_llm',
+        prompt: parsedSchema.extractionPrompt
+      }
+    ];
+
+    const newApiRecord = {
+      id: newApiId,
+      userId: userId,
+      name: parsedSchema.name || 'Voice Automation API',
+      description: parsedSchema.description || 'AI-generated API from voice thought',
+      steps: steps,
+      parameters: parsedSchema.parameter ? [
+        {
+          name: parsedSchema.parameter.name || 'query',
+          stepIndex: 0,
+          defaultValue: parsedSchema.parameter.defaultValue || ''
+        }
+      ] : [],
+      isPublic: true,
+      priceBDT: 0,
+      createdAt: new Date().toISOString()
+    };
+
+    db.apis.push(newApiRecord);
+    saveDB(db);
+
+    parsedSchema.apiId = newApiId;
+    parsedSchema.liveEndpoint = `/api/run/${newApiId}?apiKey=${callerApiKey}`;
+
     res.json({
       success: true,
       data: parsedSchema

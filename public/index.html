@@ -636,6 +636,27 @@
               </div>
 
               <div class="form-group" style="margin: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--primary); letter-spacing: 0.05em;">Live Callable API Endpoint</label>
+                  <button type="button" id="btn-copy-voice-endpoint" style="background: none; border: none; color: var(--primary); font-size: 11px; font-weight: 600; cursor: pointer; padding: 0;">Copy URL</button>
+                </div>
+                <input type="text" id="voice-api-endpoint" class="styled-input" style="font-family: monospace; font-size: 12px; color: #38bdf8;" readonly>
+              </div>
+
+              <!-- Integration Code Snippets Tabs -->
+              <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <div style="display: flex; gap: 6px;">
+                    <button type="button" class="voice-code-tab active" data-tab="curl" style="background: var(--primary); color: white; border: none; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: 600; cursor: pointer;">cURL</button>
+                    <button type="button" class="voice-code-tab" data-tab="js" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: 600; cursor: pointer;">JS</button>
+                    <button type="button" class="voice-code-tab" data-tab="python" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: 600; cursor: pointer;">Python</button>
+                  </div>
+                  <button type="button" id="btn-copy-voice-code" style="background: none; border: none; color: var(--text-muted); font-size: 11px; cursor: pointer;">Copy</button>
+                </div>
+                <pre style="margin: 0; font-family: monospace; font-size: 11px; color: #a7b1c2; overflow-x: auto; white-space: pre-wrap;" id="voice-code-snippet"></pre>
+              </div>
+
+              <div class="form-group" style="margin: 0;">
                 <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Gemini LLM Extraction Prompt</label>
                 <textarea id="voice-api-prompt" rows="2" class="styled-input" readonly style="resize: none;"></textarea>
               </div>
