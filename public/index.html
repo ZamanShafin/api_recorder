@@ -622,17 +622,17 @@
             <div id="voice-result-container" style="display: none; flex-direction: column; gap: 14px;">
               <div class="form-group" style="margin: 0;">
                 <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Generated API Name</label>
-                <input type="text" id="voice-api-name" class="styled-input" style="font-weight: 600; color: var(--primary);" readonly>
+                <input type="text" id="voice-api-name" class="styled-input" style="font-weight: 600; color: var(--primary);">
               </div>
 
               <div class="form-group" style="margin: 0;">
-                <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Target Automation URL</label>
-                <input type="text" id="voice-api-url" class="styled-input" readonly>
+                <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Target Automation URL (Editable)</label>
+                <input type="text" id="voice-api-url" class="styled-input" placeholder="https://...">
               </div>
 
               <div class="form-group" style="margin: 0;">
-                <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Extracted Parameter</label>
-                <input type="text" id="voice-api-param" class="styled-input" readonly>
+                <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Query / Route Parameter Value (Editable)</label>
+                <input type="text" id="voice-api-param" class="styled-input" placeholder="e.g. Dhaka to Delhi or Laptop">
               </div>
 
               <div class="form-group" style="margin: 0;">
@@ -658,7 +658,7 @@
 
               <div class="form-group" style="margin: 0;">
                 <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Gemini LLM Extraction Prompt</label>
-                <textarea id="voice-api-prompt" rows="2" class="styled-input" readonly style="resize: none;"></textarea>
+                <textarea id="voice-api-prompt" rows="2" class="styled-input" style="resize: vertical;"></textarea>
               </div>
 
               <!-- Action Buttons -->

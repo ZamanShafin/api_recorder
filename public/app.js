@@ -1911,7 +1911,7 @@ async function triggerVoiceThoughtParsing(thought) {
 
     if (voiceApiName) voiceApiName.value = currentVoiceSchema.name || 'Voice API';
     if (voiceApiUrl) voiceApiUrl.value = currentVoiceSchema.targetUrl || '';
-    if (voiceApiParam) voiceApiParam.value = currentVoiceSchema.parameter ? `${currentVoiceSchema.parameter.name} (Default: "${currentVoiceSchema.parameter.defaultValue}")` : 'None';
+    if (voiceApiParam) voiceApiParam.value = currentVoiceSchema.parameter ? currentVoiceSchema.parameter.defaultValue : '';
     if (voiceApiPrompt) voiceApiPrompt.value = currentVoiceSchema.extractionPrompt || '';
 
     // Render Real Live Endpoint URL & Code Snippets
@@ -1925,31 +1925,55 @@ async function triggerVoiceThoughtParsing(thought) {
       voiceEndpointInput.value = liveEndpointFullUrl;
     }
 
+    let activeTab = 'curl';
     window.updateVoiceSnippet = function(tabType) {
+      if (tabType) activeTab = tabType;
       if (!voiceCodeSnippet) return;
-      if (tabType === 'curl') {
+      const paramName = currentVoiceSchema.parameter ? currentVoiceSchema.parameter.name : 'query';
+      const paramVal = voiceApiParam ? voiceApiParam.value : (currentVoiceSchema.parameter ? currentVoiceSchema.parameter.defaultValue : '');
+
+      if (activeTab === 'curl') {
         voiceCodeSnippet.textContent = `curl -X POST "${liveEndpointFullUrl}" \\
   -H "Content-Type: application/json" \\
-  -d '{"${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.name : 'query'}": "${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.defaultValue : ''}"}'`;
-      } else if (tabType === 'js') {
+  -d '{"${paramName}": "${paramVal}"}'`;
+      } else if (activeTab === 'js') {
         voiceCodeSnippet.textContent = `const response = await fetch("${liveEndpointFullUrl}", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ "${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.name : 'query'}": "${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.defaultValue : ''}" })
+  body: JSON.stringify({ "${paramName}": "${paramVal}" })
 });
 const data = await response.json();
 console.log(data);`;
-      } else if (tabType === 'python') {
+      } else if (activeTab === 'python') {
         voiceCodeSnippet.textContent = `import requests
 
 url = "${liveEndpointFullUrl}"
-payload = {"${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.name : 'query'}": "${currentVoiceSchema.parameter ? currentVoiceSchema.parameter.defaultValue : ''}"}
+payload = {"${paramName}": "${paramVal}"}
 response = requests.post(url, json=payload)
 print(response.json())`;
       }
     };
 
     window.updateVoiceSnippet('curl');
+
+    // Dynamic Parameter & URL live reactivity
+    if (voiceApiParam) {
+      voiceApiParam.oninput = () => {
+        const pVal = voiceApiParam.value.trim();
+        if (voiceApiUrl && currentVoiceSchema.targetUrl) {
+          if (voiceApiUrl.value.includes('=')) {
+            voiceApiUrl.value = voiceApiUrl.value.replace(/=([^&]+)/, `=${encodeURIComponent(pVal)}`);
+          }
+        }
+        window.updateVoiceSnippet();
+      };
+    }
+
+    if (voiceApiUrl) {
+      voiceApiUrl.oninput = () => {
+        window.updateVoiceSnippet();
+      };
+    }
 
     // Tab buttons handler
     document.querySelectorAll('.voice-code-tab').forEach(tab => {
@@ -1999,31 +2023,56 @@ print(response.json())`;
   }
 }
 
-// Test Run Live
+// Test Run Live with Modified Variables Support
 if (btnTestVoiceApi) {
   btnTestVoiceApi.addEventListener('click', async () => {
     if (!currentVoiceSchema) return;
     btnTestVoiceApi.disabled = true;
-    btnTestVoiceApi.textContent = '⚡ Running Playwright Replayer...';
+    btnTestVoiceApi.textContent = '⚡ Running Live API...';
     if (voiceExecutionOutput) voiceExecutionOutput.style.display = 'block';
-    if (voiceOutputJson) voiceOutputJson.textContent = 'Executing Playwright browser automation and extracting dynamic data...';
+    if (voiceOutputJson) voiceOutputJson.textContent = 'Executing real API call with dynamic parameters...';
 
     try {
-      const res = await fetch('/api/testing-ground/extract', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          content: currentVoiceSchema.targetUrl,
-          contentType: 'url',
-          prompt: currentVoiceSchema.extractionPrompt
-        })
-      });
+      const currentParamVal = voiceApiParam ? voiceApiParam.value.trim() : (currentVoiceSchema.parameter ? currentVoiceSchema.parameter.defaultValue : '');
+      const currentTargetUrl = voiceApiUrl ? voiceApiUrl.value.trim() : currentVoiceSchema.targetUrl;
+      const currentPrompt = voiceApiPrompt ? voiceApiPrompt.value.trim() : currentVoiceSchema.extractionPrompt;
+      const paramName = currentVoiceSchema.parameter ? currentVoiceSchema.parameter.name : 'query';
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Execution failed');
-
-      if (voiceOutputJson) {
-        voiceOutputJson.textContent = JSON.stringify(data.data, null, 2);
+      let res;
+      if (currentVoiceSchema.apiId) {
+        res = await fetch(`/api/run/${currentVoiceSchema.apiId}?apiKey=sk_usr_347440e8de42440dae8de0bf`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            [paramName]: currentParamVal,
+            query: currentParamVal,
+            search_query: currentParamVal,
+            route: currentParamVal,
+            location: currentParamVal,
+            destination: currentParamVal
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Execution failed');
+        if (voiceOutputJson) {
+          const finalOutput = (data.data && data.data.api_response !== undefined) ? data.data.api_response : (data.data && data.data.extracted_data !== undefined ? data.data.extracted_data : data.data);
+          voiceOutputJson.textContent = JSON.stringify(finalOutput, null, 2);
+        }
+      } else {
+        res = await fetch('/api/testing-ground/extract', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            content: currentTargetUrl,
+            contentType: 'url',
+            prompt: currentPrompt + (currentParamVal ? ` Filter specifically for query/value: "${currentParamVal}".` : '')
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Execution failed');
+        if (voiceOutputJson) {
+          voiceOutputJson.textContent = JSON.stringify(data.data, null, 2);
+        }
       }
     } catch (err) {
       if (voiceOutputJson) voiceOutputJson.textContent = 'Error: ' + err.message;
