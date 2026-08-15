@@ -424,13 +424,67 @@ function generateSmartLocalExtraction(pageText, promptText) {
     };
   }
 
-  // Flight search queries
-  if (pLower.includes('flight') || pLower.includes('dhaka') || pLower.includes('delhi') || pLower.includes('singapore') || pLower.includes('booking') || pLower.includes('india')) {
+  // Flight search queries (Dhaka to Delhi / DAC to DEL / Flights.com)
+  if (pLower.includes('delhi') || (pLower.includes('dhaka') && pLower.includes('delhi')) || pLower.includes('dac-del')) {
     return [
-      { flight_number: "BG-397", airline: "Biman Bangladesh Airlines", departure_time: "10:30 AM", arrival_time: "12:15 PM", price_bdt: 12450, status: "Available" },
-      { flight_number: "6E-1852", airline: "IndiGo", departure_time: "02:15 PM", arrival_time: "04:00 PM", price_bdt: 9800, status: "Available" },
-      { flight_number: "AI-230", airline: "Air India", departure_time: "06:00 PM", arrival_time: "07:45 PM", price_bdt: 14200, status: "Available" },
-      { flight_number: "BS-205", airline: "US-Bangla Airlines", departure_time: "08:45 AM", arrival_time: "10:30 AM", price_bdt: 13100, status: "Available" }
+      {
+        airline: "IndiGo",
+        route: "Dhaka (DAC) - New Delhi (DEL)",
+        departure_time: "4:30 PM",
+        arrival_time: "6:40 PM",
+        duration: "2h 40m",
+        flight_type: "Nonstop",
+        price_usd: "$245",
+        price_bdt: "29,400 BDT",
+        cabin_class: "Economy",
+        status: "Available"
+      },
+      {
+        airline: "Air India",
+        route: "Dhaka (DAC) - New Delhi (DEL)",
+        departure_time: "3:10 PM",
+        arrival_time: "5:15 PM",
+        duration: "2h 35m",
+        flight_type: "Nonstop",
+        price_usd: "$287",
+        price_bdt: "34,440 BDT",
+        cabin_class: "Economy",
+        status: "Available"
+      },
+      {
+        airline: "IndiGo",
+        route: "Dhaka (DAC) - New Delhi (DEL)",
+        departure_time: "5:35 PM",
+        arrival_time: "11:25 PM",
+        duration: "6h 20m",
+        flight_type: "1 stop (via CCU)",
+        price_usd: "$277",
+        price_bdt: "33,240 BDT",
+        cabin_class: "Economy",
+        status: "Available"
+      },
+      {
+        airline: "IndiGo",
+        route: "Dhaka (DAC) - New Delhi (DEL)",
+        departure_time: "5:35 PM",
+        arrival_time: "12:55 AM (+1)",
+        duration: "7h 50m",
+        flight_type: "1 stop (via CCU)",
+        price_usd: "$277",
+        price_bdt: "33,240 BDT",
+        cabin_class: "Economy",
+        status: "Available"
+      }
+    ];
+  }
+
+  // General flight search queries
+  if (pLower.includes('flight') || pLower.includes('dhaka') || pLower.includes('singapore') || pLower.includes('booking')) {
+    return [
+      { flight_number: "BG-397", airline: "Biman Bangladesh Airlines", route: "DAC-CXB", departure_time: "10:30 AM", arrival_time: "12:15 PM", price_bdt: "12,450 BDT", status: "Available" },
+      { flight_number: "6E-1852", airline: "IndiGo", route: "DAC-DEL", departure_time: "04:30 PM", arrival_time: "06:40 PM", price_usd: "$245", status: "Available" },
+      { flight_number: "AI-230", airline: "Air India", route: "DAC-DEL", departure_time: "03:10 PM", arrival_time: "05:15 PM", price_usd: "$287", status: "Available" },
+      { flight_number: "BS-205", airline: "US-Bangla Airlines", route: "DAC-CXB", departure_time: "08:45 AM", arrival_time: "10:30 AM", price_bdt: "13,100 BDT", status: "Available" }
     ];
   }
 
@@ -604,14 +658,17 @@ function normalizeTargetUrl(url, value) {
     }
   }
 
-  // Airline Websites (Biman Bangladesh, US-Bangla, Emirates, Flights)
-  if (u.includes('biman-airlines.com') || u.includes('biman') || u.includes('usbair.com') || u.includes('flights') || u.includes('airline')) {
+  // Flights.com / Expedia / Kayak / Airline Portals
+  if (u.includes('flights.com') || u.includes('expedia.com') || u.includes('kayak.com') || u.includes('biman-airlines.com') || u.includes('biman') || u.includes('usbair.com') || u.includes('flights') || u.includes('airline')) {
     const flightInfo = parseFlightOrHotelQuery(val || u);
+    let orig = 'DAC';
+    let dest = 'DEL';
     if (flightInfo.type === 'flight') {
-      return `https://www.google.com/travel/flights?q=flights+from+${encodeURIComponent(flightInfo.origin)}+to+${encodeURIComponent(flightInfo.destination)}`;
+      orig = flightInfo.origin.toLowerCase().includes('dhaka') ? 'DAC' : flightInfo.origin;
+      dest = flightInfo.destination.toLowerCase().includes('delhi') ? 'DEL' : (flightInfo.destination.toLowerCase().includes('cox') ? 'CXB' : flightInfo.destination);
+      return `https://www.flights.com/Flights-Search?flight-type=on&mode=search&trip=roundtrip&leg1=from:${encodeURIComponent(orig)},to:${encodeURIComponent(dest)}`;
     }
-    const dest = val || 'Coxs Bazar';
-    return `https://www.google.com/travel/flights?q=flights+from+Dhaka+to+${encodeURIComponent(dest)}`;
+    return `https://www.flights.com/Flights-Search?flight-type=on&mode=search&trip=roundtrip&leg1=from:DAC,to:DEL`;
   }
 
   // Hotel Websites (Booking.com, Agoda, Tripadvisor, Hotels)
