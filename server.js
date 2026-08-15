@@ -779,9 +779,23 @@ function parseFlightOrHotelQuery(query) {
   return { type: 'general', query: query };
 }
 
+function cleanParamValue(val) {
+  if (!val || typeof val !== 'string') return '';
+  let str = val.trim();
+  const defaultMatch = str.match(/\(Default:\s*["']?([^"'\)]+)["']?\)/i);
+  if (defaultMatch) {
+    return defaultMatch[1].trim();
+  }
+  const prefixMatch = str.match(/^[a-zA-Z0-9_-]+\s*\((.+)\)$/);
+  if (prefixMatch) {
+    return prefixMatch[1].trim();
+  }
+  return str;
+}
+
 function normalizeTargetUrl(url, value) {
   let u = (url || '').trim();
-  const val = (value || '').trim();
+  const val = cleanParamValue(value);
 
   // If user passed a complete direct URL, use it directly
   if (val.startsWith('http://') || val.startsWith('https://')) {
@@ -839,14 +853,15 @@ function normalizeTargetUrl(url, value) {
 }
 
 async function autoFillAndCrawlIfSearchPage(page, query) {
-  if (!query || typeof query !== 'string') return;
+  const cleanQ = cleanParamValue(query);
+  if (!cleanQ || typeof cleanQ !== 'string') return;
 
   try {
     // 1. Check for Airline origin & destination form inputs
     const fromInput = page.locator('input[placeholder*="From" i], input[id*="origin" i], input[name*="origin" i], input[aria-label*="From" i], input[aria-label*="Where from" i]').first();
     const toInput = page.locator('input[placeholder*="To" i], input[id*="destination" i], input[name*="destination" i], input[aria-label*="To" i], input[aria-label*="Where to" i]').first();
 
-    const route = parseAnyFlightRoute(query);
+    const route = parseAnyFlightRoute(cleanQ);
     if (await fromInput.count() > 0 && await toInput.count() > 0 && route.origin && route.destination) {
       console.log(`[Deep Form Crawler] Detected flight booking form on page! Auto-filling From: ${route.origin} -> To: ${route.destination}`);
       await fromInput.fill(route.origin).catch(() => {});
@@ -866,8 +881,8 @@ async function autoFillAndCrawlIfSearchPage(page, query) {
     if (await searchInput.count() > 0) {
       const isVisible = await searchInput.isVisible().catch(() => false);
       if (isVisible) {
-        console.log(`[Deep Form Crawler] Detected search input! Auto-filling query: "${query}"`);
-        await searchInput.fill(query).catch(() => {});
+        console.log(`[Deep Form Crawler] Detected search input! Auto-filling query: "${cleanQ}"`);
+        await searchInput.fill(cleanQ).catch(() => {});
         await searchInput.press('Enter').catch(() => {});
         await page.waitForTimeout(3000);
       }
