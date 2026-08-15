@@ -547,6 +547,7 @@ function generateSmartLocalExtraction(pageText, promptText) {
         }
       ];
     }
+  }
 
   // Flight search queries: Dhaka to Delhi (DAC to DEL)
   if (pLower.includes('delhi') || pLower.includes('dac-del') || pLower.includes('dac to del')) {
