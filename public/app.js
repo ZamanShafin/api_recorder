@@ -1960,9 +1960,16 @@ print(response.json())`;
     if (voiceApiParam) {
       voiceApiParam.oninput = () => {
         const pVal = voiceApiParam.value.trim();
-        if (voiceApiUrl && currentVoiceSchema.targetUrl) {
-          if (voiceApiUrl.value.includes('=')) {
-            voiceApiUrl.value = voiceApiUrl.value.replace(/=([^&]+)/, `=${encodeURIComponent(pVal)}`);
+        if (voiceApiUrl) {
+          const u = voiceApiUrl.value;
+          if (u.includes('techlandbd.com')) {
+            voiceApiUrl.value = `https://www.techlandbd.com/search/advance/product/result/${encodeURIComponent(pVal)}`;
+          } else if (u.includes('/search/advance/product/result/')) {
+            voiceApiUrl.value = u.replace(/\/result\/([^/?#]+)/, `/result/${encodeURIComponent(pVal)}`);
+          } else if (u.includes('/search/') && !u.includes('=')) {
+            voiceApiUrl.value = u.replace(/\/search\/([^/?#]+)/, `/search/${encodeURIComponent(pVal)}`);
+          } else if (u.includes('=')) {
+            voiceApiUrl.value = u.replace(/=([^&]+)/, `=${encodeURIComponent(pVal)}`);
           }
         }
         window.updateVoiceSnippet();

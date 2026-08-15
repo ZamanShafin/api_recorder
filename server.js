@@ -802,13 +802,10 @@ function normalizeTargetUrl(url, value) {
     return val;
   }
 
-  // TechLand BD (supports path-based advance search: /search/advance/product/result/KEYWORD)
+  // TechLand BD (exact advance search URL: /search/advance/product/result/KEYWORD)
   if (u.includes('techlandbd.com')) {
     const q = val || 'laptop';
-    if (u.includes('/search/advance/product/result')) {
-      return `https://www.techlandbd.com/search/advance/product/result/${encodeURIComponent(q)}`;
-    }
-    return `https://www.techlandbd.com/index.php?route=product/search&search=${encodeURIComponent(q)}`;
+    return `https://www.techlandbd.com/search/advance/product/result/${encodeURIComponent(q)}`;
   }
 
   // Chaldal BD (path-based /search/KEYWORD)
