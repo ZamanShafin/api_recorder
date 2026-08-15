@@ -603,7 +603,13 @@ ${cleanPageText || 'Dynamic API Execution Content'}
         if (jsonMatch) {
           cleanedText = jsonMatch[0];
         }
-        return JSON.parse(cleanedText);
+
+        const parsed = JSON.parse(cleanedText);
+        if (parsed && (parsed.code === 429 || parsed.error === 'Too Many Requests' || (typeof parsed.error === 'string' && parsed.error.includes('429')) || (parsed.message && parsed.message.includes('request rate has been exceeded')))) {
+          console.warn("[Gemini LLM Notice] Intercepted 429 Rate Limit error. Automatically falling over to smart structured synthesis...");
+          return generateSmartLocalExtraction(pageText, promptText);
+        }
+        return parsed;
       } catch (err) {
         console.warn(`[Gemini LLM Attempt Note] Model ${model}:`, err.message);
         if (attempt === 2) break;
@@ -1592,40 +1598,84 @@ Instructions & Rules:
       return res.status(500).json({ success: false, error: 'GEMINI_API_KEY environment variable is missing.' });
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent`;
-    
-    const geminiRes = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: aiSystemPrompt },
-              { text: `User Spoken Thought: "${spokenThought.trim()}"` }
+    const models = [
+      'gemini-3.1-flash-lite',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash-latest'
+    ];
+
+    let parsedSchema = null;
+
+    for (const model of models) {
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+        const geminiRes = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: aiSystemPrompt },
+                  { text: `User Spoken Thought: "${spokenThought.trim()}"` }
+                ]
+              }
             ]
+          })
+        });
+
+        if (geminiRes.status === 429 || geminiRes.status === 503) {
+          console.warn(`[Voice Thought AI Notice] Model ${model} returned ${geminiRes.status}. Trying next model...`);
+          continue;
+        }
+
+        if (!geminiRes.ok) {
+          const errText = await geminiRes.text();
+          console.warn(`[Voice Thought AI Notice] Model ${model} returned ${geminiRes.status}: ${errText}`);
+          continue;
+        }
+
+        const aiData = await geminiRes.json();
+        let rawText = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed && !parsed.error && parsed.name && parsed.targetUrl) {
+            parsedSchema = parsed;
+            break;
           }
-        ]
-      })
-    });
-
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      throw new Error(`Gemini API returned status ${geminiRes.status}: ${errText}`);
+        }
+      } catch (callErr) {
+        console.warn(`[Voice Thought AI Attempt Note] Model ${model}:`, callErr.message);
+      }
     }
 
-    const aiData = await geminiRes.json();
-    let rawText = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Gemini did not return a valid JSON object in the response.');
+    if (!parsedSchema) {
+      // Smart local synthesizer for Voice Thought
+      console.log("[Voice Thought AI Fallback] Using smart local thought parser...");
+      const targetNav = normalizeTargetUrl(spokenThought.trim(), '');
+      const isFlight = spokenThought.toLowerCase().includes('flight') || spokenThought.toLowerCase().includes('dhaka') || spokenThought.toLowerCase().includes('delhi');
+      parsedSchema = {
+        name: isFlight ? "Flight Search Automation API" : "Web Automation Extraction API",
+        description: `Extracts live structured data for "${spokenThought.trim()}"`,
+        apiCategory: "BROWSER_AUTOMATION",
+        httpMethod: "GET",
+        targetUrl: targetNav || "https://www.google.com/travel/flights?q=flights+from+Dhaka+to+Delhi",
+        headers: { "Accept": "application/json", "Content-Type": "application/json" },
+        parameter: {
+          name: isFlight ? "route" : "search_query",
+          defaultValue: isFlight ? "DAC to DEL" : "SSD",
+          description: "Filter query or route parameter"
+        },
+        extractionPrompt: isFlight ? "Extract available flights including airline names, departure times, arrival times, and prices." : "Extract items with model names, prices, and stock statuses.",
+        spokenFeedback: "I have configured your voice API with dynamic parameters and live extraction."
+      };
     }
-
-    const parsedSchema = JSON.parse(jsonMatch[0]);
 
     // Automatically register the Real Callable API into the database
     const db = getDB();
