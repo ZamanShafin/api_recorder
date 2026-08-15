@@ -558,6 +558,39 @@ ${cleanPageText || 'Dynamic API Execution Content'}
   return generateSmartLocalExtraction(pageText, promptText);
 }
 
+function parseFlightOrHotelQuery(query) {
+  const q = (query || '').trim();
+
+  // Check for Flight: "flights from Dhaka to Cox's Bazar", "Dhaka to Delhi", "from DAC to DEL"
+  const flightMatch = q.match(/(?:(?:find|search|get|show|check|book)\s+)?(?:flights?|tickets?)?(?:\s*from\s+)?([A-Za-z\s'\.]+?)\s+to\s+([A-Za-z\s'\.]+?)(?:\s+on|\s+with|\s+via|\s+showing|\s+for|$)/i);
+  if (flightMatch) {
+    let origin = flightMatch[1].replace(/^(?:flights?|find|get|show|check|tickets?|from)\s+/i, '').trim();
+    let destination = flightMatch[2].replace(/(?:flights?|tickets?|on|showing|for|with).*/i, '').trim();
+    if (origin && destination) {
+      return {
+        type: 'flight',
+        origin: origin,
+        destination: destination
+      };
+    }
+  }
+
+  // Check for Hotels: "hotels in Singapore", "luxury resort in Cox's Bazar", "hotels in Bangkok"
+  const hotelMatch = q.match(/(?:hotels?|resorts?|stay|accommodations?)\s+(?:in|at|for|near)\s+([A-Za-z\s'\.]+?)(?:\s+showing|\s+with|\s+for|$)/i) ||
+                     q.match(/(?:in|at)\s+([A-Za-z\s'\.]+?)\s+(?:hotels?|resorts?)/i);
+  if (hotelMatch) {
+    let dest = hotelMatch[1].trim();
+    if (dest) {
+      return {
+        type: 'hotel',
+        destination: dest
+      };
+    }
+  }
+
+  return { type: 'general', query: query };
+}
+
 function normalizeTargetUrl(url, value) {
   let u = (url || '').trim();
   const val = (value || '').trim();
@@ -569,6 +602,38 @@ function normalizeTargetUrl(url, value) {
     } catch (e) {
       return '';
     }
+  }
+
+  // Airline Websites (Biman Bangladesh, US-Bangla, Emirates, Flights)
+  if (u.includes('biman-airlines.com') || u.includes('biman') || u.includes('usbair.com') || u.includes('flights') || u.includes('airline')) {
+    const flightInfo = parseFlightOrHotelQuery(val || u);
+    if (flightInfo.type === 'flight') {
+      return `https://www.google.com/travel/flights?q=flights+from+${encodeURIComponent(flightInfo.origin)}+to+${encodeURIComponent(flightInfo.destination)}`;
+    }
+    const dest = val || 'Coxs Bazar';
+    return `https://www.google.com/travel/flights?q=flights+from+Dhaka+to+${encodeURIComponent(dest)}`;
+  }
+
+  // Hotel Websites (Booking.com, Agoda, Tripadvisor, Hotels)
+  if (u.includes('booking.com')) {
+    const existing = getExistingParam(u, 'ss');
+    const hotelInfo = parseFlightOrHotelQuery(val || existing);
+    const dest = hotelInfo.destination || val || existing || 'Singapore';
+    return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(dest)}`;
+  }
+
+  if (u.includes('agoda.com')) {
+    const existing = getExistingParam(u, 'city');
+    const hotelInfo = parseFlightOrHotelQuery(val || existing);
+    const dest = hotelInfo.destination || val || existing || 'Singapore';
+    return `https://www.agoda.com/search?city=${encodeURIComponent(dest)}`;
+  }
+
+  if (u.includes('tripadvisor.com')) {
+    const existing = getExistingParam(u, 'q');
+    const hotelInfo = parseFlightOrHotelQuery(val || existing);
+    const dest = hotelInfo.destination || val || existing || 'Singapore';
+    return `https://www.tripadvisor.com/Search?q=${encodeURIComponent(dest)}+hotels`;
   }
 
   // Walton BD
@@ -592,6 +657,13 @@ function normalizeTargetUrl(url, value) {
     return `https://www.startech.com.bd/product/search?search=${encodeURIComponent(q)}`;
   }
 
+  // Daraz BD
+  if (u.includes('daraz.com')) {
+    const existing = getExistingParam(u, 'q');
+    const q = val || existing || 'products';
+    return `https://www.daraz.com.bd/catalog/?q=${encodeURIComponent(q)}`;
+  }
+
   // Dhaka Stock Exchange
   if (u.includes('dsebd.org')) {
     const existing = getExistingParam(u, 'name');
@@ -599,14 +671,46 @@ function normalizeTargetUrl(url, value) {
     return `https://www.dsebd.org/displayCompany.php?name=${encodeURIComponent(q.toUpperCase())}`;
   }
 
-  // Booking.com
-  if (u.includes('booking.com')) {
-    const existing = getExistingParam(u, 'ss');
-    const q = val || existing || 'Singapore';
-    return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(q)}`;
-  }
-
   return u;
+}
+
+async function autoFillAndCrawlIfSearchPage(page, query) {
+  if (!query || typeof query !== 'string') return;
+
+  try {
+    // 1. Check for Airline origin & destination form inputs
+    const fromInput = page.locator('input[placeholder*="From" i], input[id*="origin" i], input[name*="origin" i], input[aria-label*="From" i]').first();
+    const toInput = page.locator('input[placeholder*="To" i], input[id*="destination" i], input[name*="destination" i], input[aria-label*="To" i]').first();
+
+    const flightMatch = query.match(/(?:from\s+)?([A-Za-z\s'\.]+?)\s+to\s+([A-Za-z\s'\.]+)/i);
+    if (await fromInput.count() > 0 && await toInput.count() > 0 && flightMatch) {
+      console.log(`[Deep Form Crawler] Detected flight booking form on page! Auto-filling From: ${flightMatch[1]} -> To: ${flightMatch[2]}`);
+      await fromInput.fill(flightMatch[1].trim()).catch(() => {});
+      await toInput.fill(flightMatch[2].trim()).catch(() => {});
+      
+      const searchBtn = page.locator('button:has-text("Search"), button:has-text("Find Flights"), button[type="submit"]').first();
+      if (await searchBtn.count() > 0) {
+        console.log('[Deep Form Crawler] Submitting flight search form...');
+        await searchBtn.click().catch(() => {});
+        await page.waitForTimeout(3000);
+      }
+      return;
+    }
+
+    // 2. Check for general search bar on e-commerce or portal
+    const searchInput = page.locator('input[type="search"], input[name="q"], input[placeholder*="search" i], input[name*="search" i]').first();
+    if (await searchInput.count() > 0) {
+      const isVisible = await searchInput.isVisible().catch(() => false);
+      if (isVisible) {
+        console.log(`[Deep Form Crawler] Detected search input! Auto-filling query: "${query}"`);
+        await searchInput.fill(query).catch(() => {});
+        await searchInput.press('Enter').catch(() => {});
+        await page.waitForTimeout(3000);
+      }
+    }
+  } catch (err) {
+    console.warn('[Deep Form Crawler Note]:', err.message);
+  }
 }
 
 async function bypassCaptchaIfPresent(page) {
@@ -780,6 +884,7 @@ async function runFlow(steps, params) {
             await page.goto(targetUrl, { waitUntil: 'commit', timeout: 20000 });
             await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
             await bypassCaptchaIfPresent(page);
+            await autoFillAndCrawlIfSearchPage(page, value);
           } catch (gotoErr) {
             console.warn(`[Replayer] Navigation warning for ${targetUrl}:`, gotoErr.message);
           }
@@ -1350,6 +1455,7 @@ app.post('/api/testing-ground/extract', requireAuth, async (req, res) => {
           await page.goto(targetNavUrl, { waitUntil: 'commit', timeout: 20000 });
           await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
           await bypassCaptchaIfPresent(page);
+          await autoFillAndCrawlIfSearchPage(page, prompt);
         } catch (gotoErr) {
           console.warn(`[Testing Ground] Navigation warning for ${targetNavUrl}:`, gotoErr.message);
         }
@@ -1391,12 +1497,18 @@ app.post('/api/voice/parse-thought', async (req, res) => {
 
 Instructions & Rules:
 1. Support ALL types of APIs in the world (REST HTTP APIs, Webhooks, Data Feeds, Search APIs, Web Automation scrapers, Finance/Crypto APIs, Weather, E-Commerce, Social, Movies, Govt/Open Data).
-2. Categorize the request:
+2. Deep Search & Crawler URL Resolution Archetypes:
+   - For Airlines & Flight searches (e.g. Biman Bangladesh, US-Bangla, Emirates, IndiGo, Air India): "https://www.google.com/travel/flights?q=flights+from+ORIGIN+to+DESTINATION", param: "route"
+   - For Hotel & Accommodation searches (e.g. Booking.com, Agoda, Tripadvisor, Hotels.com): "https://www.booking.com/searchresults.html?ss=DESTINATION", param: "destination"
    - For Walton BD: "https://waltonbd.com/index.php?route=product/search&search=KEYWORD&description=true", param: "search_query"
+   - For Star Tech BD: "https://www.startech.com.bd/product/search?search=KEYWORD", param: "search"
+   - For Ryans Computers: "https://www.ryans.com/search?q=KEYWORD", param: "q"
+   - For Daraz BD: "https://www.daraz.com.bd/catalog/?q=KEYWORD", param: "q"
+   - For Dhaka Stock Exchange (DSE): "https://www.dsebd.org/displayCompany.php?name=TICKER", param: "name"
    - For IMDb: "https://www.imdb.com/chart/top/", param: "chart_type"
    - For Nasdaq: "https://www.nasdaq.com/market-activity/stocks/aapl", param: "ticker"
    - For Public REST APIs (e.g. GitHub, Weather, Currency rates, CoinGecko, JSONPlaceholder, OpenData): use the direct REST endpoint.
-   - For any other website or API requested: infer the exact working target URL, method, and parameters.
+   - For any other website or dynamic portal requested: infer the exact working target URL, method, and parameters.
 
 3. Return ONLY a valid JSON object matching this exact schema (no markdown, no code fences):
 {
